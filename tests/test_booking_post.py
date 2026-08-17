@@ -1,6 +1,7 @@
 import requests
 import pytest
 
+
 class TestBookingPost:
 
     base_url = "https://restful-booker.herokuapp.com"
@@ -31,6 +32,10 @@ class TestBookingPost:
         assert body ["booking"]["additionalneeds"] == "Breakfast"
         assert "bookingid" in body
 
+    def assert_bad_request_returns_500(self, payload):
+        response = requests.post(f"{self.base_url}/booking", json=payload)
+        assert response.status_code == 500
+        assert response.text == "Internal Server Error"
 
     def test_wrong_data_type(self):
 
@@ -46,7 +51,22 @@ class TestBookingPost:
             "additionalneeds": 0
         }
 
-        response = requests.post(f"{self.base_url}/booking", json=payload)
+        for key, value in payload.items():
+            if key == "firstname" or key == "lastname" or key == "additionalneeds":
+                if type(value) != str:
+                    self.assert_bad_request_returns_500(payload)
 
-        print(response.status_code)
-        print(response.text)
+            elif key == "totalprice":
+                if type(value)!= int:
+                    self.assert_bad_request_returns_500(payload)
+            
+            elif key == "depositpaid":
+                if type(value) != bool:
+                    self.assert_bad_request_returns_500(payload)
+
+            elif key == "bookingdates":
+                if type(value["checkin"]) != str:
+                    self.assert_bad_request_returns_500(payload)
+                
+                if type(value["checkout"]) != str:
+                    self.assert_bad_request_returns_500(payload)
