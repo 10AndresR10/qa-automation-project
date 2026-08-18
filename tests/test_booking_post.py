@@ -70,3 +70,61 @@ class TestBookingPost:
                 
                 if type(value["checkout"]) != str:
                     self.assert_bad_request_returns_500(payload)
+
+
+    def test_missing_required_field(self):
+
+        payload = {
+            "firstname": "Andres",
+            "lastname": "Reyes",
+            "totalprice": 10,
+            "depositpaid": True,
+            "bookingdates": {
+                "checkin": "2026-01-01",
+                "checkout": "2027-01-01"
+            },
+            "additionalneeds": "Breakfast"
+        }
+
+        for key in list(payload.keys()):
+            if key == "firstname":
+                modified_payload = payload.copy()
+                del modified_payload[key]
+                response = requests.post(f"{self.base_url}/booking", json=modified_payload)
+                assert response.status_code == 500
+                assert response.text == "Internal Server Error"
+            
+            elif key == "lastname":
+                modified_payload = payload.copy()
+                del modified_payload[key]
+                response = requests.post(f"{self.base_url}/booking", json=modified_payload)
+                assert response.status_code == 500
+                assert response.text == "Internal Server Error"
+            
+            elif key == "totalprice":
+                modified_payload = payload.copy()
+                del modified_payload[key]
+                response = requests.post(f"{self.base_url}/booking", json=modified_payload)
+                assert response.status_code == 500
+                assert response.text == "Internal Server Error"
+
+            elif key == "depositpaid":
+                modified_payload = payload.copy()
+                del modified_payload[key]
+                response = requests.post(f"{self.base_url}/booking", json=modified_payload)
+                assert response.status_code == 500
+                assert response.text == "Internal Server Error"
+            
+            elif key == "bookingdates":
+                modified_payload = payload.copy()
+                del modified_payload[key]
+                response = requests.post(f"{self.base_url}/booking", json=modified_payload)
+                assert response.status_code == 500
+                assert response.text == "Internal Server Error"
+            
+            elif key == "additionalneeds":
+                modified_payload = payload.copy()
+                del modified_payload[key]
+                response = requests.post(f"{self.base_url}/booking", json=modified_payload)
+                assert response.status_code == 200
+            
