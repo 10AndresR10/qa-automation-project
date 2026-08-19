@@ -1,3 +1,4 @@
+import json
 import requests
 import pytest
 
@@ -128,3 +129,29 @@ class TestBookingPost:
                 response = requests.post(f"{self.base_url}/booking", json=modified_payload)
                 assert response.status_code == 200
             
+    def  test_empty_string_field(self):
+
+        payload = {
+            "firstname": "",
+            "lastname": "",
+            "totalprice": False,
+            "depositpaid": False,
+            "bookingdates": {
+                "checkin": "0NaN-aN-aN",
+                "checkout": "0NaN-aN-aN"
+            },
+            "additionalneeds": ""
+        }
+
+    
+        response = requests.post(f"{self.base_url}/booking", json=payload)
+        
+        body = response.json()
+        assert response.status_code == 200
+        assert body["booking"]["firstname"] == ""
+        assert body["booking"]["lastname"] == ""
+        assert body["booking"]["totalprice"] is None
+        assert body["booking"]["bookingdates"]["checkin"] == "0NaN-aN-aN"
+        assert body["booking"]["bookingdates"]["checkout"] == "0NaN-aN-aN"
+        assert body["booking"]["additionalneeds"] == ""
+        
