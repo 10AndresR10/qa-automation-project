@@ -155,3 +155,46 @@ class TestBookingPost:
         assert body["booking"]["bookingdates"]["checkout"] == "0NaN-aN-aN"
         assert body["booking"]["additionalneeds"] == ""
         
+
+    def test_extremely_long_string(self):
+
+        payload = {
+            "firstname": "Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres AndresAndres Andres Andres Andres Andres AndresAndres Andres Andres Andres Andres AndresAndres Andres Andres Andres Andres AndresAndres Andres Andres Andres Andres AndresAndres Andres Andres Andres Andres Andres",
+            "lastname": "Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes",
+            "totalprice": 10,
+            "depositpaid": False,
+            "bookingdates": {
+                "checkin": "2026-01-01",
+                "checkout": "2026-01-01"
+            },
+            "additionalneeds": "Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast "
+        }
+
+        response = requests.post(f"{self.base_url}/booking", json= payload)
+
+        body = response.json()
+
+        assert body["booking"]["firstname"] == payload["firstname"]
+        assert body["booking"]["lastname"] == payload["lastname"]
+        assert body["booking"]["additionalneeds"] == payload["additionalneeds"]
+
+    def test_equivalence_partitioning_checkvariables(self):
+        
+        payload = {
+            "firstname": "Andres",
+            "lastname": "Reyes",
+            "totalprice": 10,
+            "depositpaid": True,
+            "bookingdates": {
+                "checkin": "2099-13-01",
+                "checkout": "1999-01-32"
+            },
+            "additionalneeds": "Breakfast"
+        }
+
+        response = requests.post(f"{self.base_url}/booking", json= payload)
+        
+        body = response.json()
+
+        assert body["booking"]["bookingdates"]["checkin"] == "0NaN-aN-aN"
+        assert body["booking"]["bookingdates"]["checkout"] == "0NaN-aN-aN"

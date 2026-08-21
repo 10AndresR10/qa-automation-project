@@ -51,13 +51,14 @@ Actual: **200** — the API accepts empty strings and malformed date strings wit
 - 🐛 **Bug:** the clearly-invalid date string `"0NaN-aN-aN"` is accepted verbatim for both `checkin` and `checkout` with no format validation.
 
 **Test 5: POST request with an extremely long string in a field (e.g. "firstname")**
+(Tested with `firstname` at 288 chars, `lastname` at 299 chars, `additionalneeds` at 360 chars.)
 Expected (assumed): 400 Bad Request, per API documentation
-Actual: **Not yet executed** — no automated test written for this case.
+Actual: **200** — all three long strings are accepted and echoed back unmodified (no truncation, no length validation).
 
 **Test 6: POST request — equivalence partitioning on checkin/checkout dates**
-Valid range (checkout after checkin) vs. invalid range (checkout before/equal to checkin).
+(Tested with an out-of-range invalid pair: `checkin: "2099-13-01"` (month 13), `checkout: "1999-01-32"` (day 32).)
 Expected (assumed): valid → 200, invalid → 400
-Actual: **Not yet executed** — no automated test written for this case.
+Actual: **200** — both invalid dates are silently coerced to `"0NaN-aN-aN"` instead of being rejected. (Only the invalid-range half of this test has been automated; the valid-range case still needs a dedicated test.)
 
 ---
 
@@ -67,4 +68,6 @@ Actual: **Not yet executed** — no automated test written for this case.
 2. **Non-standard/invalid IDs on GET return 404, not 400.** Malformed IDs, whitespace IDs, and oversized IDs are all treated the same as "not found" — there is no separate bad-request path for unparseable IDs.
 3. **`additionalneeds` is optional**, not required — omitting it returns 200, unlike every other field.
 4. **Empty strings and malformed data are silently accepted (200)** instead of rejected, and in the case of `totalprice` sent as a boolean, the value is **corrupted to `None`** rather than validated or rejected. This is a data-integrity bug, not just a missing-validation issue.
-5. **Untested per API docs:** long-string field limits (Test 5) and checkin/checkout date-range validation (Test 6) still need automated coverage — current actual behavior is unknown.
+5. **No length limit on string fields.** Fields up to 360 characters (`firstname`, `lastname`, `additionalneeds`) are accepted and returned as-is with a 200 — no server-side length validation.
+6. **Invalid calendar dates are silently coerced, not rejected.** An out-of-range date like `checkin: "2099-13-01"` (month 13) or `checkout: "1999-01-32"` (day 32) returns 200, and both values come back corrupted to `"0NaN-aN-aN"` rather than the request being rejected — consistent with bug #4.
+7. **Still untested:** the valid-range half of Test 6 (checkout genuinely after checkin) has not been automated yet.
