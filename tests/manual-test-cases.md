@@ -62,9 +62,35 @@ Actual: **200** — both invalid dates are silently coerced to `"0NaN-aN-aN"` in
 
 ---
 
+# Test Cases — PUT Method
+
+**Test 1: PUT request (happy path)**
+Creates a booking, authenticates, then fully updates all fields of the existing booking with valid data.
+Expected: 200, response body reflects all updated field values.
+Actual: 200 ✅ — all fields (`firstname`, `lastname`, `totalprice`, `depositpaid`, `bookingdates.checkin`, `bookingdates.checkout`, `additionalneeds`) are returned updated as sent.
+
+**Test 2: PUT request with wrong data type per field**
+(`firstname` as an int, `lastname` as a bool, `totalprice` as a string, `depositpaid` as an int, `checkin` as an int, `checkout` as a whitespace string, `additionalneeds` as a bool — auth token included.)
+Expected (assumed): 400 Bad Request
+Actual: **500 Internal Server Error** ("Internal Server Error" body) — consistent with POST's handling of mistyped fields (see POST Test 2).
+
+---
+
+## Test Cases — PUT Method: still needed
+
+- PUT with no `Cookie`/auth token (expect 403 Forbidden, per API docs)
+- PUT with an invalid/expired token
+- PUT against a non-existent booking ID
+- PUT with a missing required field
+- PUT with empty-string field(s)
+- PUT with an extremely long string field
+- Partial update via PATCH, for comparison (out of scope for this file but worth noting as a gap)
+
+---
+
 ## Summary of bugs / API behavior discovered
 
-1. **Invalid input triggers 500s, not 400s.** Any malformed field type or missing required field results in a raw `500 Internal Server Error` rather than a client-facing `400 Bad Request`. The API does not distinguish client error from server error.
+1. **Invalid input triggers 500s, not 400s.** Any malformed field type or missing required field results in a raw `500 Internal Server Error` rather than a client-facing `400 Bad Request`. The API does not distinguish client error from server error. Confirmed on both POST and PUT.
 2. **Non-standard/invalid IDs on GET return 404, not 400.** Malformed IDs, whitespace IDs, and oversized IDs are all treated the same as "not found" — there is no separate bad-request path for unparseable IDs.
 3. **`additionalneeds` is optional**, not required — omitting it returns 200, unlike every other field.
 4. **Empty strings and malformed data are silently accepted (200)** instead of rejected, and in the case of `totalprice` sent as a boolean, the value is **corrupted to `None`** rather than validated or rejected. This is a data-integrity bug, not just a missing-validation issue.
