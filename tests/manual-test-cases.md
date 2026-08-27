@@ -74,14 +74,22 @@ Actual: 200 ✅ — all fields (`firstname`, `lastname`, `totalprice`, `depositp
 Expected (assumed): 400 Bad Request
 Actual: **500 Internal Server Error** ("Internal Server Error" body) — consistent with POST's handling of mistyped fields (see POST Test 2).
 
+**Test 3: PUT request against a non-existent booking ID**
+(Tested with a 11-digit numeric ID, `99999999999`, valid auth token included.)
+Expected (assumed): 404 Not Found
+Actual: **405 Method Not Allowed** ("Method Not Allowed" body) — unlike GET (see GET Test 3), a non-existent ID on PUT is not treated as "not found"; it's rejected before the ID is even looked up.
+
+**Test 4: PUT request with a missing required field**
+(Created a valid booking, then sent a full update payload with `firstname` omitted, valid auth token included.)
+Expected (assumed): 400 Bad Request
+Actual: **400 Bad Request** ("Bad Request" body) ✅ — but note this is **inconsistent with POST's** handling of the same condition, which returns 500 (see POST Test 3 and bug #1); PUT validates a missing required field before hitting the server error POST triggers.
+
 ---
 
 ## Test Cases — PUT Method: still needed
 
 - PUT with no `Cookie`/auth token (expect 403 Forbidden, per API docs)
 - PUT with an invalid/expired token
-- PUT against a non-existent booking ID
-- PUT with a missing required field
 - PUT with empty-string field(s)
 - PUT with an extremely long string field
 - Partial update via PATCH, for comparison (out of scope for this file but worth noting as a gap)
@@ -90,10 +98,12 @@ Actual: **500 Internal Server Error** ("Internal Server Error" body) — consist
 
 ## Summary of bugs / API behavior discovered
 
-1. **Invalid input triggers 500s, not 400s.** Any malformed field type or missing required field results in a raw `500 Internal Server Error` rather than a client-facing `400 Bad Request`. The API does not distinguish client error from server error. Confirmed on both POST and PUT.
+1. **Invalid input triggers 500s, not 400s — for mistyped fields.** A malformed field type (wrong data type) results in a raw `500 Internal Server Error` rather than a client-facing `400 Bad Request`, on both POST and PUT. A *missing* required field behaves inconsistently across methods — see bug #9.
 2. **Non-standard/invalid IDs on GET return 404, not 400.** Malformed IDs, whitespace IDs, and oversized IDs are all treated the same as "not found" — there is no separate bad-request path for unparseable IDs.
 3. **`additionalneeds` is optional**, not required — omitting it returns 200, unlike every other field.
 4. **Empty strings and malformed data are silently accepted (200)** instead of rejected, and in the case of `totalprice` sent as a boolean, the value is **corrupted to `None`** rather than validated or rejected. This is a data-integrity bug, not just a missing-validation issue.
 5. **No length limit on string fields.** Fields up to 360 characters (`firstname`, `lastname`, `additionalneeds`) are accepted and returned as-is with a 200 — no server-side length validation.
 6. **Invalid calendar dates are silently coerced, not rejected.** An out-of-range date like `checkin: "2099-13-01"` (month 13) or `checkout: "1999-01-32"` (day 32) returns 200, and both values come back corrupted to `"0NaN-aN-aN"` rather than the request being rejected — consistent with bug #4.
 7. **Still untested:** the valid-range half of Test 6 (checkout genuinely after checkin) has not been automated yet.
+8. **PUT against a non-existent ID returns 405, not 404.** Unlike GET, which treats any unresolvable ID as "not found" (see bug #2), PUT against a well-formed but non-existent ID returns `405 Method Not Allowed` — inconsistent handling of the same underlying condition (no matching record) across methods.
+9. **Missing required field is handled differently by POST vs. PUT.** POST returns `500 Internal Server Error` when a required field is omitted (bug #1), but PUT returns `400 Bad Request` for the identical condition — the two methods validate the same requirement at different points in the request lifecycle.
