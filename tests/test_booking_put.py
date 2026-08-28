@@ -128,20 +128,53 @@ class TestBookingPut:
 
         response = requests.post(f"{self.base_url}/booking", json= payload)
 
-        id = response.json()["bookingid"]
-
-        auth_response = requests.post(f"{self.base_url}/auth", json={"username": "admin", "password": "password123"})
-        token = auth_response.json()["token"]
-
         wrong_payload = payload.copy()
 
-        del wrong_payload["firstname"]
+        id = response.json()["bookingid"]        
 
-        new_response = requests.put(f"{self.base_url}/booking/{id}", json= wrong_payload, headers={"Cookie":f"token={token}"})
+        for key in list(wrong_payload):
 
-        assert new_response.status_code == 400 
-        assert new_response.text == "Bad Request"
-        
+            auth_response = requests.post(f"{self.base_url}/auth", json={"username": "admin", "password": "password123"})
+            token = auth_response.json()["token"]
 
+            if key == "firstname":
+                wrong_payload = payload.copy()
+                del wrong_payload[key]
+                new_response = requests.put(f"{self.base_url}/booking/{id}", json= wrong_payload, headers={"Cookie":f"token={token}"})
+                assert new_response.status_code == 400 
+                assert new_response.text == "Bad Request"
 
-        
+            if key == "lastname":
+                wrong_payload = payload.copy()
+                del wrong_payload[key]
+                new_response = requests.put(f"{self.base_url}/booking/{id}", json= wrong_payload, headers={"Cookie":f"token={token}"})
+                assert new_response.status_code == 400 
+                assert new_response.text == "Bad Request"
+            
+            if key == "depositpaid":
+                wrong_payload = payload.copy()
+                del wrong_payload[key]
+                new_response = requests.put(f"{self.base_url}/booking/{id}", json= wrong_payload, headers={"Cookie":f"token={token}"})
+                assert new_response.status_code == 400 
+                assert new_response.text == "Bad Request"
+            
+            if key == "totalprice":
+                wrong_payload = payload.copy()
+                del wrong_payload[key]
+                new_response = requests.put(f"{self.base_url}/booking/{id}", json= wrong_payload, headers={"Cookie":f"token={token}"})
+                assert new_response.status_code == 400 
+                assert new_response.text == "Bad Request"
+            
+            if key == "bookingdates":
+                wrong_payload = payload.copy()
+                del wrong_payload[key]
+                new_response = requests.put(f"{self.base_url}/booking/{id}", json= wrong_payload, headers={"Cookie":f"token={token}"})
+                assert new_response.status_code == 400 
+                assert new_response.text == "Bad Request"
+
+            if key == "additionalneeds":
+                wrong_payload = payload.copy()
+                del wrong_payload[key]
+                new_response = requests.put(f"{self.base_url}/booking/{id}", json= wrong_payload, headers={"Cookie":f"token={token}"})
+                assert new_response.status_code == 200
+            
