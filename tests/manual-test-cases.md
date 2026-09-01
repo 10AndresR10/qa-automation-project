@@ -86,6 +86,12 @@ Actual:
 - Omitting `firstname`, `lastname`, `depositpaid`, `totalprice`, or `bookingdates` → **400 Bad Request** ("Bad Request" body) ✅ — but note this is **inconsistent with POST's** handling of the same condition, which returns 500 (see POST Test 3 and bug #1); PUT validates a missing required field before hitting the server error POST triggers.
 - Omitting `additionalneeds` → **200** — consistent with PUT Test 1/POST Test 3: `additionalneeds` is optional, not required (see bug #3).
 
+**Test 5: PUT request with an extremely long string in a field**
+(Created a valid booking, then sent a full update payload with each field in turn replaced by a 91-char string, valid auth token included — including `totalprice` and `depositpaid`, which are normally numeric/boolean.)
+Expected (assumed): 400 Bad Request, per API documentation
+Actual: **200** for every field, including `totalprice`/`depositpaid` set to a long string — consistent with POST's long-string handling (see POST Test 5) and, for the type mismatch on `totalprice`/`depositpaid`, notably *not* the 500 seen in PUT Test 2's wrong-data-type test; a single mistyped field alongside otherwise-valid data doesn't trigger the same server error as changing every field's type at once.
+⚠️ **Test gap:** the `bookingdates` iteration has a copy/paste bug — it sets top-level `checkin`/`checkout` keys instead of the nested `bookingdates.checkin`/`bookingdates.checkout`, so the nested `bookingdates` object is never actually replaced with a long string. This case still needs to be re-tested correctly.
+
 ---
 
 ## Test Cases — PUT Method: still needed
@@ -93,7 +99,7 @@ Actual:
 - PUT with no `Cookie`/auth token (expect 403 Forbidden, per API docs)
 - PUT with an invalid/expired token
 - PUT with empty-string field(s)
-- PUT with an extremely long string field
+- PUT with a genuinely long-string `bookingdates.checkin`/`bookingdates.checkout` (Test 5's nested-field case is currently untested — see gap noted above)
 - Partial update via PATCH, for comparison (out of scope for this file but worth noting as a gap)
 
 ---
@@ -109,3 +115,4 @@ Actual:
 7. **Still untested:** the valid-range half of Test 6 (checkout genuinely after checkin) has not been automated yet.
 8. **PUT against a non-existent ID returns 405, not 404.** Unlike GET, which treats any unresolvable ID as "not found" (see bug #2), PUT against a well-formed but non-existent ID returns `405 Method Not Allowed` — inconsistent handling of the same underlying condition (no matching record) across methods.
 9. **Missing required field is handled differently by POST vs. PUT.** POST returns `500 Internal Server Error` when a required field is omitted (bug #1), but PUT returns `400 Bad Request` for the identical condition — the two methods validate the same requirement at different points in the request lifecycle.
+10. **No length limit on PUT string fields either**, matching bug #5 on POST — long strings (91 chars tested) in any field, including a numeric/boolean field replaced with a string, return 200 with no length or type validation, and don't trigger the 500 seen when every field is mistyped at once (see PUT Test 2). **Automation gap:** the `bookingdates` case in this test doesn't actually exercise a long nested date string due to a copy/paste bug — see PUT Test 5.

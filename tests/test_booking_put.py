@@ -1,3 +1,4 @@
+import json
 import requests
 import pytest
 
@@ -178,3 +179,42 @@ class TestBookingPut:
                 new_response = requests.put(f"{self.base_url}/booking/{id}", json= wrong_payload, headers={"Cookie":f"token={token}"})
                 assert new_response.status_code == 200
             
+
+    def test_extremely_long_string_field(self):
+
+        payload = {
+            "firstname": "John",
+            "lastname": "Smith",
+            "totalprice": 150,
+            "depositpaid": True,
+            "bookingdates": {
+                "checkin": "2026-01-01",
+                "checkout": "2026-01-05"
+            },
+            "additionalneeds": "Breakfast"
+        }
+
+        response = requests.post(f"{self.base_url}/booking", json= payload)
+
+        id = response.json()["bookingid"]
+
+        long_string_payload = payload.copy()
+
+        auth_response = requests.post(f"{self.base_url}/auth", json={"username": "admin", "password": "password123"})
+        token = auth_response.json()["token"]
+
+
+        for key in list(long_string_payload):
+
+            long_string_payload = payload.copy()
+            if key == "bookingdates":
+                long_string_payload["checkin"] = "Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres "
+                long_string_payload["checkout"] = "Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres "
+
+            else:
+                long_string_payload[key] = "Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres "
+
+            new_response = requests.put(f"{self.base_url}/booking/{id}", json= long_string_payload, headers={"Cookie": f"token= {token}"})
+            
+            assert new_response.status_code == 200
+
