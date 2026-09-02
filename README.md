@@ -12,6 +12,12 @@ Portfolio project for API test automation in Python, built against the
 - **POST /booking**
   - Happy path: valid payload creates a booking and returns the expected data
   - Wrong data types in the payload
+- **PUT /booking/{id}**
+  - Happy path: authenticated update of all fields on an existing booking
+  - Wrong data types in the payload
+  - Non-existent booking ID
+  - Missing required field (each field omitted in turn)
+  - Extremely long string in a field
 
 See [`tests/manual-test-cases.md`](tests/manual-test-cases.md) for the full
 test case list written before implementation.
