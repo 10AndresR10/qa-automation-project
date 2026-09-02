@@ -1,4 +1,3 @@
-import json
 import requests
 import pytest
 
@@ -111,7 +110,8 @@ class TestBookingPut:
         response = requests.put(f"{self.base_url}/booking/{none_id}", json= payload, headers= {"Cookie": f"token={token}"})
         
         assert response.status_code in [405, 403]
-        assert response.text == "Method Not Allowed"
+        if response.status_code == 405:
+            assert response.text == "Method Not Allowed"
 
     def test_missing_required_field(self):
 
@@ -214,7 +214,7 @@ class TestBookingPut:
             else:
                 long_string_payload[key] = "Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres "
 
-            new_response = requests.put(f"{self.base_url}/booking/{id}", json= long_string_payload, headers={"Cookie": f"token= {token}"})
+            new_response = requests.put(f"{self.base_url}/booking/{id}", json= long_string_payload, headers={"Cookie": f"token={token}"})
             
             assert new_response.status_code == 200
 
