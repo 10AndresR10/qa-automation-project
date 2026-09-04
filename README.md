@@ -18,6 +18,8 @@ Portfolio project for API test automation in Python, built against the
   - Non-existent booking ID
   - Missing required field (each field omitted in turn)
   - Extremely long string in a field
+- **DELETE /booking/{id}**
+  - Happy path: authenticated delete of an existing booking, confirmed with a follow-up GET
 
 See [`tests/manual-test-cases.md`](tests/manual-test-cases.md) for the full
 test case list written before implementation.
