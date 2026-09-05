@@ -116,6 +116,7 @@ Actual: **200** for every field, including `totalprice`/`depositpaid` set to a l
 8. **PUT against a non-existent ID returns 405, not 404.** Unlike GET, which treats any unresolvable ID as "not found" (see bug #2), PUT against a well-formed but non-existent ID returns `405 Method Not Allowed` — inconsistent handling of the same underlying condition (no matching record) across methods.
 9. **Missing required field is handled differently by POST vs. PUT.** POST returns `500 Internal Server Error` when a required field is omitted (bug #1), but PUT returns `400 Bad Request` for the identical condition — the two methods validate the same requirement at different points in the request lifecycle.
 10. **No length limit on PUT string fields either**, matching bug #5 on POST — long strings (91 chars tested) in any field, including a numeric/boolean field replaced with a string, return 200 with no length or type validation, and don't trigger the 500 seen when every field is mistyped at once (see PUT Test 2). **Automation gap:** the `bookingdates` case in this test doesn't actually exercise a long nested date string due to a copy/paste bug — see PUT Test 5.
+11. **DELETE against a non-existent ID also returns 405, not 404**, matching PUT's behavior (bug #8) rather than GET's (bug #2) — the same "record not found" condition is handled inconsistently depending on the HTTP method used, now confirmed across three methods (GET: 404, PUT: 405, DELETE: 405).
 
 ---
 
@@ -126,12 +127,20 @@ Creates a booking, authenticates, deletes the booking, then confirms with a foll
 Expected: 201 on delete, 404 on the follow-up GET.
 Actual: 201 ✅ ("Created" body) on delete, 404 ✅ ("Not Found" body) on the follow-up GET — the booking is genuinely removed, not just marked deleted.
 
+**Test 2: DELETE request against a non-existent booking ID**
+(Tested with ID `9999`, valid auth token included.)
+Expected (assumed): 404 Not Found
+Actual: **405 Method Not Allowed** ("Method Not Allowed" body) — consistent with PUT's handling of the same condition (see PUT Test 3 and bug #8); DELETE against a well-formed but non-existent ID is rejected the same way PUT is, not treated as "not found" the way GET is.
+
+**Test 3: DELETE request against an already-deleted booking ID (double delete)**
+(Created a valid booking, then sent the same DELETE request twice with a valid auth token.)
+Expected (assumed): 404 Not Found on the second delete
+Actual: **201** ✅ ("Created" body) on the first delete, then **405 Method Not Allowed** ("Method Not Allowed" body) on the second — matches Test 2's non-existent-ID behavior, since the ID no longer resolves to a record after the first delete.
+
 ---
 
 ## Test Cases — DELETE Method: still needed
 
 - DELETE with no `Cookie`/auth token (expect 403 Forbidden, per API docs)
 - DELETE with an invalid/expired token
-- DELETE against a non-existent booking ID
-- DELETE against an already-deleted booking ID (double delete)
 - DELETE with a malformed ID (e.g. non-numeric, like "abc"), for comparison with GET Test 2 / PUT Test 3
