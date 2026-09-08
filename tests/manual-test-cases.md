@@ -117,6 +117,7 @@ Actual: **200** for every field, including `totalprice`/`depositpaid` set to a l
 9. **Missing required field is handled differently by POST vs. PUT.** POST returns `500 Internal Server Error` when a required field is omitted (bug #1), but PUT returns `400 Bad Request` for the identical condition — the two methods validate the same requirement at different points in the request lifecycle.
 10. **No length limit on PUT string fields either**, matching bug #5 on POST — long strings (91 chars tested) in any field, including a numeric/boolean field replaced with a string, return 200 with no length or type validation, and don't trigger the 500 seen when every field is mistyped at once (see PUT Test 2). **Automation gap:** the `bookingdates` case in this test doesn't actually exercise a long nested date string due to a copy/paste bug — see PUT Test 5.
 11. **DELETE against a non-existent ID also returns 405, not 404**, matching PUT's behavior (bug #8) rather than GET's (bug #2) — the same "record not found" condition is handled inconsistently depending on the HTTP method used, now confirmed across three methods (GET: 404, PUT: 405, DELETE: 405).
+12. **DELETE doesn't distinguish a malformed ID from a not-found one.** A malformed (alphanumeric) ID on DELETE returns the same `405 Method Not Allowed` as a well-formed but non-existent ID (bug #11), unlike GET, which returns `404 Not Found` for both malformed and non-existent IDs alike (bug #2) — DELETE and GET are each internally consistent, but disagree with each other on the status code for the same class of condition.
 
 ---
 
@@ -137,10 +138,14 @@ Actual: **405 Method Not Allowed** ("Method Not Allowed" body) — consistent wi
 Expected (assumed): 404 Not Found on the second delete
 Actual: **201** ✅ ("Created" body) on the first delete, then **405 Method Not Allowed** ("Method Not Allowed" body) on the second — matches Test 2's non-existent-ID behavior, since the ID no longer resolves to a record after the first delete.
 
+**Test 4: DELETE request with a malformed ID (alphanumeric, e.g. "olXYD841")**
+(Valid auth token included.)
+Expected (assumed): 400 Bad Request
+Actual: **405 Method Not Allowed** ("Method Not Allowed" body) — same handling as a well-formed but non-existent ID (see Test 2 and bug #8); DELETE doesn't distinguish a malformed ID from a not-found one, unlike GET (see GET Test 2), which returns 404 for both.
+
 ---
 
 ## Test Cases — DELETE Method: still needed
 
 - DELETE with no `Cookie`/auth token (expect 403 Forbidden, per API docs)
 - DELETE with an invalid/expired token
-- DELETE with a malformed ID (e.g. non-numeric, like "abc"), for comparison with GET Test 2 / PUT Test 3

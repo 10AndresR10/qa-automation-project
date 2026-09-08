@@ -1,5 +1,8 @@
 import pytest
 import requests
+import random
+import string
+
 
 class TestBookingDelete:
 
@@ -79,3 +82,42 @@ class TestBookingDelete:
             else:
                 assert new_response.status_code == 405
                 assert new_response.text == "Method Not Allowed"
+
+    
+    def test_malformed_id(self):
+
+        payload = {
+            "firstname": "John",
+            "lastname": "Smith",
+            "totalprice": 150,
+            "depositpaid": True,
+            "bookingdates": {
+                "checkin": "2026-01-01",
+                "checkout": "2026-01-05"
+            },
+            "additionalneeds": "Breakfast"
+        }
+
+        response = requests.post(f"{self.base_url}/booking", json=payload)
+
+        lower_case = random.sample(list(string.ascii_lowercase), k=2)
+        upper_case = random.sample(list(string.ascii_uppercase), k=3)
+        digits = random.sample(list(string.digits), k=3)
+
+        new_id = "" 
+        for i in lower_case:       
+            new_id += i
+        for j in upper_case:
+            new_id += j
+        for k in digits:
+            new_id += k
+        
+        auth_response = requests.post(f"{self.base_url}/auth", json={"username": "admin", "password": "password123"})
+
+        token = auth_response.json()["token"]
+
+        new_response = requests.delete(f"{self.base_url}/booking/{new_id}", headers= {"Cookie": f"token={token}"})
+
+        assert new_response.status_code in [403, 405]
+        if new_response.status_code == 405:
+            assert new_response.text == "Method Not Allowed"

@@ -22,6 +22,7 @@ Portfolio project for API test automation in Python, built against the
   - Happy path: authenticated delete of an existing booking, confirmed with a follow-up GET
   - Non-existent booking ID
   - Already-deleted booking ID (double delete)
+  - Malformed (alphanumeric) booking ID
 
 See [`tests/manual-test-cases.md`](tests/manual-test-cases.md) for the full
 test case list written before implementation.
