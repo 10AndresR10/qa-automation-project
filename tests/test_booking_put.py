@@ -217,4 +217,38 @@ class TestBookingPut:
             new_response = requests.put(f"{self.base_url}/booking/{id}", json= long_string_payload, headers={"Cookie": f"token={token}"})
             
             assert new_response.status_code == 200
+            
+    @pytest.mark.xfail(reason="totalprice sent as empty string is silently corrupted to null instead of rejected or stored as sent — see bug log")
+    def test_empty_string_field(self):
 
+        payload = {
+            "firstname": "John",
+            "lastname": "Smith",
+            "totalprice": 150,
+            "depositpaid": True,
+            "bookingdates": {
+                "checkin": "2026-01-01",
+                "checkout": "2026-01-05"
+            },
+            "additionalneeds": "Breakfast"
+        }
+
+        response = requests.post(f"{self.base_url}/booking", json=payload)
+        id = response.json()["bookingid"]
+
+        empty_response= payload.copy()
+
+        auth_response = requests.post(f"{self.base_url}/auth", json={"username": "admin", "password": "password123"})
+        token = auth_response.json()["token"]
+
+        for key in empty_response:
+            empty_response = payload.copy()
+            empty_response[key] = ""
+            new_response = requests.put(f"{self.base_url}/booking/{id}", json=empty_response, headers={"Cookie": f"token={token}"})
+            if new_response.status_code != 200:
+                assert new_response.status_code == 400
+                assert new_response.text == "Bad Request"
+
+            else:
+                assert new_response.status_code == 200
+                assert new_response.json()[key] == ""

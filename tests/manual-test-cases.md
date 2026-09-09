@@ -92,14 +92,25 @@ Expected (assumed): 400 Bad Request, per API documentation
 Actual: **200** for every field, including `totalprice`/`depositpaid` set to a long string — consistent with POST's long-string handling (see POST Test 5) and, for the type mismatch on `totalprice`/`depositpaid`, notably *not* the 500 seen in PUT Test 2's wrong-data-type test; a single mistyped field alongside otherwise-valid data doesn't trigger the same server error as changing every field's type at once.
 ⚠️ **Test gap:** the `bookingdates` iteration has a copy/paste bug — it sets top-level `checkin`/`checkout` keys instead of the nested `bookingdates.checkin`/`bookingdates.checkout`, so the nested `bookingdates` object is never actually replaced with a long string. This case still needs to be re-tested correctly.
 
+**Test 6: PUT request with empty-string field(s)**
+(Created a valid booking, then sent a full update payload with each field in turn replaced by `""`, valid auth token included.)
+Expected (assumed): 400 Bad Request for any field
+Actual:
+- `firstname`, `lastname`, `additionalneeds` → **200**, empty string accepted and stored as sent ✅ — consistent with POST's empty-string handling (see POST Test 4 and bug #4).
+- `totalprice` set to `""` → **200**, but the returned/stored `totalprice` comes back as **`null`** — 🐛 **Bug:** silently corrupted rather than stored as `""` or rejected, consistent with POST Test 4's `totalprice: False` → `None` corruption (bug #4).
+- `depositpaid` set to `""` → **200**, but the returned/stored `depositpaid` comes back as **`false`** — 🐛 **Bug:** an empty string is silently coerced to boolean `false` instead of being stored as sent or rejected.
+- `bookingdates` set to `""` (replacing the whole nested object with a string) → **400 Bad Request** ("Bad Request" body) — the only field actually rejected, since `bookingdates` must be an object, not a scalar.
+
+⚠️ **Test gap:** this test replaces the whole `bookingdates` object with `""` rather than the nested `checkin`/`checkout` fields individually, so an empty-string date (e.g. `bookingdates.checkin: ""`) is still untested. The automated version of this test (`test_empty_string_field`) is marked `xfail` and only asserts through the `totalprice` failure, since the loop stops at the first failed assertion — the `depositpaid` corruption noted above was confirmed with a manual/ad-hoc script, not the automated assertions.
+
 ---
 
 ## Test Cases — PUT Method: still needed
 
 - PUT with no `Cookie`/auth token (expect 403 Forbidden, per API docs)
 - PUT with an invalid/expired token
-- PUT with empty-string field(s)
 - PUT with a genuinely long-string `bookingdates.checkin`/`bookingdates.checkout` (Test 5's nested-field case is currently untested — see gap noted above)
+- PUT with nested `bookingdates.checkin`/`checkout` set to an empty string (Test 6 only covers replacing the whole `bookingdates` object — see gap noted above)
 - Partial update via PATCH, for comparison (out of scope for this file but worth noting as a gap)
 
 ---
@@ -118,6 +129,7 @@ Actual: **200** for every field, including `totalprice`/`depositpaid` set to a l
 10. **No length limit on PUT string fields either**, matching bug #5 on POST — long strings (91 chars tested) in any field, including a numeric/boolean field replaced with a string, return 200 with no length or type validation, and don't trigger the 500 seen when every field is mistyped at once (see PUT Test 2). **Automation gap:** the `bookingdates` case in this test doesn't actually exercise a long nested date string due to a copy/paste bug — see PUT Test 5.
 11. **DELETE against a non-existent ID also returns 405, not 404**, matching PUT's behavior (bug #8) rather than GET's (bug #2) — the same "record not found" condition is handled inconsistently depending on the HTTP method used, now confirmed across three methods (GET: 404, PUT: 405, DELETE: 405).
 12. **DELETE doesn't distinguish a malformed ID from a not-found one.** A malformed (alphanumeric) ID on DELETE returns the same `405 Method Not Allowed` as a well-formed but non-existent ID (bug #11), unlike GET, which returns `404 Not Found` for both malformed and non-existent IDs alike (bug #2) — DELETE and GET are each internally consistent, but disagree with each other on the status code for the same class of condition.
+13. **PUT accepts empty strings for `firstname`/`lastname`/`additionalneeds`, but corrupts `totalprice` and `depositpaid`.** Sending `""` for `totalprice` returns 200 but the stored value comes back as `null` (matching bug #4's POST-side corruption), and sending `""` for `depositpaid` returns 200 but the stored value comes back coerced to boolean `false` — neither is rejected nor stored as sent. Replacing the whole `bookingdates` object with `""` is correctly rejected with 400, but this doesn't test the nested date fields as empty strings (see PUT Test 6 gap).
 
 ---
 

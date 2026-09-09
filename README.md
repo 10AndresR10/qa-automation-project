@@ -18,6 +18,7 @@ Portfolio project for API test automation in Python, built against the
   - Non-existent booking ID
   - Missing required field (each field omitted in turn)
   - Extremely long string in a field
+  - Empty-string field(s) (marked `xfail` — `totalprice` is corrupted to `null` instead of being rejected or stored as sent)
 - **DELETE /booking/{id}**
   - Happy path: authenticated delete of an existing booking, confirmed with a follow-up GET
   - Non-existent booking ID
