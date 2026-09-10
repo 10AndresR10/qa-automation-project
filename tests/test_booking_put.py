@@ -249,7 +249,7 @@ class TestBookingPut:
 
             empty_response[key] = ""
             new_response = requests.put(f"{self.base_url}/booking/{id}", json=empty_response, headers={"Cookie": f"token={token}"})
-            
+
             if new_response.status_code != 200:
                 assert new_response.status_code == 400
                 assert new_response.text == "Bad Request"
