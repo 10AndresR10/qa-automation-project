@@ -242,11 +242,14 @@ class TestBookingPut:
 
         for key in empty_response:
             empty_response = payload.copy()
+
             if key == "bookingdates":
                 empty_response["checkin"] = ""
                 empty_response["checkout"] = ""
+
             empty_response[key] = ""
             new_response = requests.put(f"{self.base_url}/booking/{id}", json=empty_response, headers={"Cookie": f"token={token}"})
+            
             if new_response.status_code != 200:
                 assert new_response.status_code == 400
                 assert new_response.text == "Bad Request"
@@ -261,6 +264,6 @@ class TestBookingPut:
 
                 if key in known_bugs:
                     assert actual == known_bugs[key], f"{key}: expected known bug value {known_bugs[key]!r}, got {actual!r}"
-                    
+
                 else:
                     assert actual == ""
