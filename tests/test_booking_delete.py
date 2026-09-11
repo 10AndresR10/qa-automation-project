@@ -121,3 +121,51 @@ class TestBookingDelete:
         assert new_response.status_code in [403, 405]
         if new_response.status_code == 405:
             assert new_response.text == "Method Not Allowed"
+
+    def test_invalid_auth_token(self):
+
+        payload = {
+            "firstname": "John",
+            "lastname": "Smith",
+            "totalprice": 150,
+            "depositpaid": True,
+            "bookingdates": {
+                "checkin": "2026-01-01",
+                "checkout": "2026-01-05"
+            },
+            "additionalneeds": "Breakfast"
+        }
+
+        response = requests.post(f"{self.base_url}/booking", json=payload)
+
+        auth_response = requests.post(f"{self.base_url}/auth", json={"username": "admin", "password":"password123"})
+        token = auth_response.json()["token"]
+
+        id = response.json()["bookingid"]
+
+        new_response = requests.delete(f"{self.base_url}/booking/{id}", headers= {"Cookie": f"token=invalidtoken123"})
+
+        assert new_response.status_code == 403
+        assert new_response.text == "Forbidden"
+
+
+    def test_no_cookie_auth_token(self):
+
+        payload = {
+            "firstname": "John",
+            "lastname": "Smith",
+            "totalprice": 150,
+            "depositpaid": True,
+            "bookingdates": {
+                "checkin": "2026-01-01",
+                "checkout": "2026-01-05"
+            },
+            "additionalneeds": "Breakfast"
+        }
+
+        response = requests.post(f"{self.base_url}/booking", json=payload)
+        id = response.json()["bookingid"]
+
+        new_response = requests.delete(f"{self.base_url}/booking/{id}")
+        assert new_response.status_code == 403
+        assert new_response.text == "Forbidden"

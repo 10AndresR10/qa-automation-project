@@ -157,9 +157,16 @@ Actual: **201** ✅ ("Created" body) on the first delete, then **405 Method Not 
 Expected (assumed): 400 Bad Request
 Actual: **405 Method Not Allowed** ("Method Not Allowed" body) — same handling as a well-formed but non-existent ID (see Test 2 and bug #8); DELETE doesn't distinguish a malformed ID from a not-found one, unlike GET (see GET Test 2), which returns 404 for both.
 
+**Test 5: DELETE request with an invalid/expired auth token**
+(Created a valid booking, then sent the DELETE with a well-formed but bogus `Cookie: token=invalidtoken123` instead of a real token.)
+Expected: 403 Forbidden, per API docs.
+Actual: **403 Forbidden** ✅ — matches documented behavior.
+
+**Test 6: DELETE request with no `Cookie`/auth token**
+(Created a valid booking, then sent the DELETE with no `Cookie` header at all.)
+Expected: 403 Forbidden, per API docs.
+Actual: **403 Forbidden** ✅ — matches documented behavior.
+
 ---
 
-## Test Cases — DELETE Method: still needed
-
-- DELETE with no `Cookie`/auth token (expect 403 Forbidden, per API docs)
-- DELETE with an invalid/expired token
+DELETE method test cases are now complete — all planned cases (happy path, non-existent ID, double delete, malformed ID, invalid token, missing token) are automated in `test_booking_delete.py` and pass.

@@ -24,6 +24,8 @@ Portfolio project for API test automation in Python, built against the
   - Non-existent booking ID
   - Already-deleted booking ID (double delete)
   - Malformed (alphanumeric) booking ID
+  - Invalid/expired auth token
+  - Missing `Cookie`/auth token
 
 See [`tests/manual-test-cases.md`](tests/manual-test-cases.md) for the full
 test case list written before implementation.
