@@ -105,11 +105,15 @@ The automated version of this test (`test_empty_string_field`) no longer uses `x
 
 ⚠️ **Test gap still open:** the `bookingdates` iteration was updated to also set top-level `checkin`/`checkout` keys to `""` before the loop overwrites `bookingdates` itself, but the payload's dates live under the *nested* `bookingdates` object — the added top-level keys are extraneous and ignored by the API, and `empty_response["bookingdates"]` still ends up set to the scalar `""`. So this case still only re-confirms the whole-object-replaced-by-a-string rejection (400); an empty-string value for the nested `bookingdates.checkin`/`bookingdates.checkout` fields remains untested.
 
+**Test 7: PUT request with no `Cookie`/auth token**
+(Created a valid booking, then sent a full update payload to it with no `Cookie` header at all.)
+Expected: 403 Forbidden, per API docs.
+Actual: **403 Forbidden** ✅ — matches documented behavior, consistent with DELETE's handling of the same condition (see DELETE Test 6).
+
 ---
 
 ## Test Cases — PUT Method: still needed
 
-- PUT with no `Cookie`/auth token (expect 403 Forbidden, per API docs)
 - PUT with an invalid/expired token
 - PUT with a genuinely long-string `bookingdates.checkin`/`bookingdates.checkout` (Test 5's nested-field case is currently untested — see gap noted above)
 - PUT with nested `bookingdates.checkin`/`checkout` set to an empty string (Test 6 only covers replacing the whole `bookingdates` object — see gap noted above)
