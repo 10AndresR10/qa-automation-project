@@ -120,11 +120,7 @@ Actual: **403 Forbidden** ✅ — matches documented behavior, consistent with D
 
 ---
 
-## Test Cases — PUT Method: still needed
-
-- Partial update via PATCH, for comparison (out of scope for this file but worth noting as a gap)
-
-PUT method test cases are otherwise complete — all planned cases (happy path, wrong data type, non-existent ID, missing required field, long strings incl. nested `bookingdates`, empty strings incl. nested `bookingdates`, no auth token, invalid auth token) are automated in `test_booking_put.py` and pass.
+PUT method test cases are complete — all planned cases (happy path, wrong data type, non-existent ID, missing required field, long strings incl. nested `bookingdates`, empty strings incl. nested `bookingdates`, no auth token, invalid auth token) are automated in `test_booking_put.py` and pass.
 
 ---
 
