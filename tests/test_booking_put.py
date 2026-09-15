@@ -293,3 +293,29 @@ class TestBookingPut:
         put_response = requests.put(f"{self.base_url}/booking/{id}", json=update_payload)
         assert put_response.status_code == 403
         assert put_response.text == "Forbidden"
+
+    def test_an_invalid_expired_token(self):
+
+        payload = {
+            "firstname": "John",
+            "lastname": "Smith",
+            "totalprice": 150,
+            "depositpaid": True,
+            "bookingdates": {
+                "checkin": "2026-01-01",
+                "checkout": "2026-01-05"
+            },
+            "additionalneeds": "Breakfast"
+        }
+
+        response = requests.post(f"{self.base_url}/booking", json=payload)
+        id = response.json()["bookingid"]
+
+        update_payload = payload.copy()
+
+        update_payload["firstname"] = "Andres"
+
+        new_response = requests.put(f"{self.base_url}/booking/{id}", json=update_payload, headers={"Cookie": "token=invalidtoken123"})
+
+        assert new_response.status_code == 403
+        assert new_response.text == "Forbidden"

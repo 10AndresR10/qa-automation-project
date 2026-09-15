@@ -110,11 +110,15 @@ The automated version of this test (`test_empty_string_field`) no longer uses `x
 Expected: 403 Forbidden, per API docs.
 Actual: **403 Forbidden** ✅ — matches documented behavior, consistent with DELETE's handling of the same condition (see DELETE Test 6).
 
+**Test 8: PUT request with an invalid/expired auth token**
+(Created a valid booking, then sent a full update payload to it with a well-formed but bogus `Cookie: token=invalidtoken123` instead of a real token.)
+Expected: 403 Forbidden, per API docs.
+Actual: **403 Forbidden** ✅ — matches documented behavior, consistent with DELETE's handling of the same condition (see DELETE Test 5).
+
 ---
 
 ## Test Cases — PUT Method: still needed
 
-- PUT with an invalid/expired token
 - PUT with a genuinely long-string `bookingdates.checkin`/`bookingdates.checkout` (Test 5's nested-field case is currently untested — see gap noted above)
 - PUT with nested `bookingdates.checkin`/`checkout` set to an empty string (Test 6 only covers replacing the whole `bookingdates` object — see gap noted above)
 - Partial update via PATCH, for comparison (out of scope for this file but worth noting as a gap)
