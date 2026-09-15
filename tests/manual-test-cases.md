@@ -90,7 +90,7 @@ Actual:
 (Created a valid booking, then sent a full update payload with each field in turn replaced by a 91-char string, valid auth token included — including `totalprice` and `depositpaid`, which are normally numeric/boolean.)
 Expected (assumed): 400 Bad Request, per API documentation
 Actual: **200** for every field, including `totalprice`/`depositpaid` set to a long string — consistent with POST's long-string handling (see POST Test 5) and, for the type mismatch on `totalprice`/`depositpaid`, notably *not* the 500 seen in PUT Test 2's wrong-data-type test; a single mistyped field alongside otherwise-valid data doesn't trigger the same server error as changing every field's type at once.
-⚠️ **Test gap:** the `bookingdates` iteration has a copy/paste bug — it sets top-level `checkin`/`checkout` keys instead of the nested `bookingdates.checkin`/`bookingdates.checkout`, so the nested `bookingdates` object is never actually replaced with a long string. This case still needs to be re-tested correctly.
+The `bookingdates` case's copy/paste bug (setting top-level `checkin`/`checkout` keys instead of the nested ones) is fixed — the nested `bookingdates` object is now genuinely replaced with a long string for both `checkin` and `checkout`. Actual: **200**, and both nested date values come back corrupted to **`"0NaN-aN-aN"`** — the same coercion as bug #6 (invalid calendar dates), not a distinct behavior. Confirmed by an assertion in `test_extremely_long_string_field`.
 
 **Test 6: PUT request with empty-string field(s)**
 (Created a valid booking, then sent a full update payload with each field in turn replaced by `""`, valid auth token included.)
@@ -101,16 +101,19 @@ Actual:
 - `depositpaid` set to `""` → **200**, but the returned/stored `depositpaid` comes back as **`false`** — 🐛 **Bug:** an empty string is silently coerced to boolean `false` instead of being stored as sent or rejected.
 - `bookingdates` set to `""` (replacing the whole nested object with a string) → **400 Bad Request** ("Bad Request" body) — the only field actually rejected, since `bookingdates` must be an object, not a scalar.
 
-The automated version of this test (`test_empty_string_field`) no longer uses `xfail`: it now asserts the two known-bug values directly (`totalprice` → `None`, `depositpaid` → `False`) against a `known_bugs` map, so the full field list runs and the test passes every time — both corruptions are confirmed by the automated assertions, not a manual/ad-hoc script.
+The automated version of this test (`test_empty_string_field`) no longer uses `xfail`: it now asserts the two known-bug values directly (`totalprice` → `None`, `depositpaid` → `False`) against a `known_bugs` map, so the full field list runs and the test passes every time — both corruptions are confirmed by the automated assertions, not a manual/ad-hoc script. The extraneous top-level `checkin`/`checkout` assignment (dead code left over from the original copy/paste bug) has been removed; this test still only covers replacing the whole `bookingdates` object with `""`, which correctly gets 400 — the nested-field case is now covered separately by Test 7 below.
 
-⚠️ **Test gap still open:** the `bookingdates` iteration was updated to also set top-level `checkin`/`checkout` keys to `""` before the loop overwrites `bookingdates` itself, but the payload's dates live under the *nested* `bookingdates` object — the added top-level keys are extraneous and ignored by the API, and `empty_response["bookingdates"]` still ends up set to the scalar `""`. So this case still only re-confirms the whole-object-replaced-by-a-string rejection (400); an empty-string value for the nested `bookingdates.checkin`/`bookingdates.checkout` fields remains untested.
+**Test 7: PUT request with nested `bookingdates.checkin`/`checkout` set to an empty string**
+(Created a valid booking, then sent a full update payload with `bookingdates.checkin` set to `""` — leaving `checkout` valid — then repeated with `bookingdates.checkout` set to `""` — leaving `checkin` valid, valid auth token included both times.)
+Expected (assumed): 400 Bad Request
+Actual: **200** for both cases, and the empty-string date value comes back corrupted to **`"0NaN-aN-aN"`** — the same coercion as bug #6, not a distinct behavior; unlike replacing the whole `bookingdates` object (which is correctly rejected with 400, see Test 6), an empty string for just one nested date field is silently accepted and corrupted. Confirmed by `test_empty_string_nested_bookingdates_field`.
 
-**Test 7: PUT request with no `Cookie`/auth token**
+**Test 8: PUT request with no `Cookie`/auth token**
 (Created a valid booking, then sent a full update payload to it with no `Cookie` header at all.)
 Expected: 403 Forbidden, per API docs.
 Actual: **403 Forbidden** ✅ — matches documented behavior, consistent with DELETE's handling of the same condition (see DELETE Test 6).
 
-**Test 8: PUT request with an invalid/expired auth token**
+**Test 9: PUT request with an invalid/expired auth token**
 (Created a valid booking, then sent a full update payload to it with a well-formed but bogus `Cookie: token=invalidtoken123` instead of a real token.)
 Expected: 403 Forbidden, per API docs.
 Actual: **403 Forbidden** ✅ — matches documented behavior, consistent with DELETE's handling of the same condition (see DELETE Test 5).
@@ -119,9 +122,9 @@ Actual: **403 Forbidden** ✅ — matches documented behavior, consistent with D
 
 ## Test Cases — PUT Method: still needed
 
-- PUT with a genuinely long-string `bookingdates.checkin`/`bookingdates.checkout` (Test 5's nested-field case is currently untested — see gap noted above)
-- PUT with nested `bookingdates.checkin`/`checkout` set to an empty string (Test 6 only covers replacing the whole `bookingdates` object — see gap noted above)
 - Partial update via PATCH, for comparison (out of scope for this file but worth noting as a gap)
+
+PUT method test cases are otherwise complete — all planned cases (happy path, wrong data type, non-existent ID, missing required field, long strings incl. nested `bookingdates`, empty strings incl. nested `bookingdates`, no auth token, invalid auth token) are automated in `test_booking_put.py` and pass.
 
 ---
 
@@ -136,10 +139,10 @@ Actual: **403 Forbidden** ✅ — matches documented behavior, consistent with D
 7. **Still untested:** the valid-range half of Test 6 (checkout genuinely after checkin) has not been automated yet.
 8. **PUT against a non-existent ID returns 405, not 404.** Unlike GET, which treats any unresolvable ID as "not found" (see bug #2), PUT against a well-formed but non-existent ID returns `405 Method Not Allowed` — inconsistent handling of the same underlying condition (no matching record) across methods.
 9. **Missing required field is handled differently by POST vs. PUT.** POST returns `500 Internal Server Error` when a required field is omitted (bug #1), but PUT returns `400 Bad Request` for the identical condition — the two methods validate the same requirement at different points in the request lifecycle.
-10. **No length limit on PUT string fields either**, matching bug #5 on POST — long strings (91 chars tested) in any field, including a numeric/boolean field replaced with a string, return 200 with no length or type validation, and don't trigger the 500 seen when every field is mistyped at once (see PUT Test 2). **Automation gap:** the `bookingdates` case in this test doesn't actually exercise a long nested date string due to a copy/paste bug — see PUT Test 5.
+10. **No length limit on PUT string fields either**, matching bug #5 on POST — long strings (91 chars tested) in any field, including a numeric/boolean field replaced with a string, return 200 with no length or type validation, and don't trigger the 500 seen when every field is mistyped at once (see PUT Test 2). A long string in the nested `bookingdates.checkin`/`checkout` fields is also accepted with 200, but corrupted to `"0NaN-aN-aN"` rather than stored as sent — consistent with bug #6 (see PUT Test 5).
 11. **DELETE against a non-existent ID also returns 405, not 404**, matching PUT's behavior (bug #8) rather than GET's (bug #2) — the same "record not found" condition is handled inconsistently depending on the HTTP method used, now confirmed across three methods (GET: 404, PUT: 405, DELETE: 405).
 12. **DELETE doesn't distinguish a malformed ID from a not-found one.** A malformed (alphanumeric) ID on DELETE returns the same `405 Method Not Allowed` as a well-formed but non-existent ID (bug #11), unlike GET, which returns `404 Not Found` for both malformed and non-existent IDs alike (bug #2) — DELETE and GET are each internally consistent, but disagree with each other on the status code for the same class of condition.
-13. **PUT accepts empty strings for `firstname`/`lastname`/`additionalneeds`, but corrupts `totalprice` and `depositpaid`.** Sending `""` for `totalprice` returns 200 but the stored value comes back as `null` (matching bug #4's POST-side corruption), and sending `""` for `depositpaid` returns 200 but the stored value comes back coerced to boolean `false` — neither is rejected nor stored as sent. Both are now confirmed by automated assertions in `test_empty_string_field` (no longer `xfail`). Replacing the whole `bookingdates` object with `""` is correctly rejected with 400, but this doesn't test the nested date fields as empty strings (see PUT Test 6 gap, still open).
+13. **PUT accepts empty strings for `firstname`/`lastname`/`additionalneeds`, but corrupts `totalprice` and `depositpaid`.** Sending `""` for `totalprice` returns 200 but the stored value comes back as `null` (matching bug #4's POST-side corruption), and sending `""` for `depositpaid` returns 200 but the stored value comes back coerced to boolean `false` — neither is rejected nor stored as sent. Both are now confirmed by automated assertions in `test_empty_string_field` (no longer `xfail`). Replacing the whole `bookingdates` object with `""` is correctly rejected with 400, but an empty string for just a nested `bookingdates.checkin`/`checkout` field is accepted with 200 and corrupted to `"0NaN-aN-aN"`, consistent with bug #6 (see PUT Test 7, confirmed by `test_empty_string_nested_bookingdates_field`).
 
 ---
 

@@ -203,20 +203,29 @@ class TestBookingPut:
         token = auth_response.json()["token"]
 
 
+        long_string = "Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres "
+
         for key in list(long_string_payload):
 
             long_string_payload = payload.copy()
             if key == "bookingdates":
-                long_string_payload["checkin"] = "Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres "
-                long_string_payload["checkout"] = "Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres "
+                long_string_payload["bookingdates"] = {
+                    "checkin": long_string,
+                    "checkout": long_string,
+                }
 
             else:
-                long_string_payload[key] = "Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres "
+                long_string_payload[key] = long_string
 
             new_response = requests.put(f"{self.base_url}/booking/{id}", json= long_string_payload, headers={"Cookie": f"token={token}"})
-            
+
             assert new_response.status_code == 200
-            
+
+            if key == "bookingdates":
+                body = new_response.json()
+                assert body["bookingdates"]["checkin"] == "0NaN-aN-aN"
+                assert body["bookingdates"]["checkout"] == "0NaN-aN-aN"
+
 
     def test_empty_string_field(self):
 
@@ -242,11 +251,6 @@ class TestBookingPut:
 
         for key in empty_response:
             empty_response = payload.copy()
-
-            if key == "bookingdates":
-                empty_response["checkin"] = ""
-                empty_response["checkout"] = ""
-
             empty_response[key] = ""
             new_response = requests.put(f"{self.base_url}/booking/{id}", json=empty_response, headers={"Cookie": f"token={token}"})
 
@@ -267,6 +271,38 @@ class TestBookingPut:
 
                 else:
                     assert actual == ""
+
+
+    def test_empty_string_nested_bookingdates_field(self):
+
+        payload = {
+            "firstname": "John",
+            "lastname": "Smith",
+            "totalprice": 150,
+            "depositpaid": True,
+            "bookingdates": {
+                "checkin": "2026-01-01",
+                "checkout": "2026-01-05"
+            },
+            "additionalneeds": "Breakfast"
+        }
+
+        response = requests.post(f"{self.base_url}/booking", json=payload)
+        id = response.json()["bookingid"]
+
+        auth_response = requests.post(f"{self.base_url}/auth", json={"username": "admin", "password": "password123"})
+        token = auth_response.json()["token"]
+
+        for date_key in ["checkin", "checkout"]:
+
+            update_payload = payload.copy()
+            update_payload["bookingdates"] = payload["bookingdates"].copy()
+            update_payload["bookingdates"][date_key] = ""
+
+            new_response = requests.put(f"{self.base_url}/booking/{id}", json=update_payload, headers={"Cookie": f"token={token}"})
+
+            assert new_response.status_code == 200
+            assert new_response.json()["bookingdates"][date_key] == "0NaN-aN-aN"
 
 
     def test_no_cookie_auth(self):
