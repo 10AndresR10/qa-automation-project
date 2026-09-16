@@ -58,7 +58,12 @@ Actual: **200** — all three long strings are accepted and echoed back unmodifi
 **Test 6: POST request — equivalence partitioning on checkin/checkout dates**
 (Tested with an out-of-range invalid pair: `checkin: "2099-13-01"` (month 13), `checkout: "1999-01-32"` (day 32).)
 Expected (assumed): valid → 200, invalid → 400
-Actual: **200** — both invalid dates are silently coerced to `"0NaN-aN-aN"` instead of being rejected. (Only the invalid-range half of this test has been automated; the valid-range case still needs a dedicated test.)
+Actual: **200** — both invalid dates are silently coerced to `"0NaN-aN-aN"` instead of being rejected.
+
+**Test 6b: POST request — equivalence partitioning, valid-range counterpart**
+(Tested with a well-formed pair where `checkout` genuinely comes after `checkin`: `checkin: "2026-12-01"`, `checkout: "2026-12-10"`.)
+Expected: 200, both dates returned as sent.
+Actual: **200** ✅ — both dates are returned unmodified, as expected. Confirmed by `test_equivalence_partitioning_valid_dates`. This completes the equivalence-partitioning pair for Test 6 (see bug #7, now resolved).
 
 ---
 
@@ -132,7 +137,7 @@ PUT method test cases are complete — all planned cases (happy path, wrong data
 4. **Empty strings and malformed data are silently accepted (200)** instead of rejected, and in the case of `totalprice` sent as a boolean, the value is **corrupted to `None`** rather than validated or rejected. This is a data-integrity bug, not just a missing-validation issue.
 5. **No length limit on string fields.** Fields up to 360 characters (`firstname`, `lastname`, `additionalneeds`) are accepted and returned as-is with a 200 — no server-side length validation.
 6. **Invalid calendar dates are silently coerced, not rejected.** An out-of-range date like `checkin: "2099-13-01"` (month 13) or `checkout: "1999-01-32"` (day 32) returns 200, and both values come back corrupted to `"0NaN-aN-aN"` rather than the request being rejected — consistent with bug #4.
-7. **Still untested:** the valid-range half of Test 6 (checkout genuinely after checkin) has not been automated yet.
+7. ~~**Still untested:** the valid-range half of Test 6 (checkout genuinely after checkin) has not been automated yet.~~ **Resolved:** the valid-range half of Test 6 is now automated in `test_equivalence_partitioning_valid_dates` (see Test 6b) — the API correctly returns the dates as sent for a well-formed, chronologically-ordered pair.
 8. **PUT against a non-existent ID returns 405, not 404.** Unlike GET, which treats any unresolvable ID as "not found" (see bug #2), PUT against a well-formed but non-existent ID returns `405 Method Not Allowed` — inconsistent handling of the same underlying condition (no matching record) across methods.
 9. **Missing required field is handled differently by POST vs. PUT.** POST returns `500 Internal Server Error` when a required field is omitted (bug #1), but PUT returns `400 Bad Request` for the identical condition — the two methods validate the same requirement at different points in the request lifecycle.
 10. **No length limit on PUT string fields either**, matching bug #5 on POST — long strings (91 chars tested) in any field, including a numeric/boolean field replaced with a string, return 200 with no length or type validation, and don't trigger the 500 seen when every field is mistyped at once (see PUT Test 2). A long string in the nested `bookingdates.checkin`/`checkout` fields is also accepted with 200, but corrupted to `"0NaN-aN-aN"` rather than stored as sent — consistent with bug #6 (see PUT Test 5).

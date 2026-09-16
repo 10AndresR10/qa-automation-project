@@ -129,7 +129,7 @@ class TestBookingPost:
                 response = requests.post(f"{self.base_url}/booking", json=modified_payload)
                 assert response.status_code == 200
             
-    def  test_empty_string_field(self):
+    def test_empty_string_field(self):
 
         payload = {
             "firstname": "",
@@ -198,3 +198,24 @@ class TestBookingPost:
 
         assert body["booking"]["bookingdates"]["checkin"] == "0NaN-aN-aN"
         assert body["booking"]["bookingdates"]["checkout"] == "0NaN-aN-aN"
+
+    def test_equivalence_partitioning_valid_dates(self):
+
+        payload = {
+            "firstname": "Andres",
+            "lastname": "Reyes",
+            "totalprice": 10,
+            "depositpaid": True,
+            "bookingdates": {
+                "checkin": "2026-12-01",
+                "checkout": "2026-12-10"
+            },
+            "additionalneeds": "Breakfast"
+        }
+
+        response = requests.post(f"{self.base_url}/booking", json=payload)
+        assert response.status_code == 200
+        body = response.json()
+
+        assert body["booking"]["bookingdates"]["checkin"] == "2026-12-01"
+        assert body["booking"]["bookingdates"]["checkout"] == "2026-12-10"
