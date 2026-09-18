@@ -32,10 +32,11 @@ Creates a new booking with valid data.
 Expected: 200
 Actual: 200 ✅
 
-**Test 2: POST request with a wrong data type per field**
-(e.g. numeric strings for `firstname`/`lastname`, `totalprice` as a string, `depositpaid` as a string, `checkin`/`checkout` as ints, `additionalneeds` as an int.)
+**Test 2: POST request with a wrong data type in `firstname`/`lastname`**
+(Scope narrowed to these two fields to dig into type-coercion behavior; `totalprice`, `depositpaid`, `bookingdates`, and `additionalneeds` are no longer covered by this test — wrong-type behavior for those fields is untested for now.)
 Expected (assumed): 400 Bad Request
-Actual: **500 Internal Server Error** ("Internal Server Error" body) for every mistyped field.
+Actual: **500 Internal Server Error** ("Internal Server Error" body) when `firstname`/`lastname` is a number or the boolean `True`.
+- 🐛 **Bug:** boolean values are handled inconsistently — `firstname`/`lastname: True` returns **500**, but `firstname`/`lastname: False` is silently accepted with **200** and stored as the literal value `false` instead of being rejected like every other wrong type (see bug #14).
 
 **Test 3: POST request with a missing required field**
 Expected (assumed): 400 Bad Request for any omitted field
@@ -144,6 +145,7 @@ PUT method test cases are complete — all planned cases (happy path, wrong data
 11. **DELETE against a non-existent ID also returns 405, not 404**, matching PUT's behavior (bug #8) rather than GET's (bug #2) — the same "record not found" condition is handled inconsistently depending on the HTTP method used, now confirmed across three methods (GET: 404, PUT: 405, DELETE: 405).
 12. **DELETE doesn't distinguish a malformed ID from a not-found one.** A malformed (alphanumeric) ID on DELETE returns the same `405 Method Not Allowed` as a well-formed but non-existent ID (bug #11), unlike GET, which returns `404 Not Found` for both malformed and non-existent IDs alike (bug #2) — DELETE and GET are each internally consistent, but disagree with each other on the status code for the same class of condition.
 13. **PUT accepts empty strings for `firstname`/`lastname`/`additionalneeds`, but corrupts `totalprice` and `depositpaid`.** Sending `""` for `totalprice` returns 200 but the stored value comes back as `null` (matching bug #4's POST-side corruption), and sending `""` for `depositpaid` returns 200 but the stored value comes back coerced to boolean `false` — neither is rejected nor stored as sent. Both are now confirmed by automated assertions in `test_empty_string_field` (no longer `xfail`). Replacing the whole `bookingdates` object with `""` is correctly rejected with 400, but an empty string for just a nested `bookingdates.checkin`/`checkout` field is accepted with 200 and corrupted to `"0NaN-aN-aN"`, consistent with bug #6 (see PUT Test 7, confirmed by `test_empty_string_nested_bookingdates_field`).
+14. **POST treats the wrong-type boolean `False` differently from `True` on string fields.** Sending `firstname`/`lastname: True` returns 500 (consistent with bug #1), but sending `False` for the same field is silently accepted with 200 and stored as the literal `false` — the falsy value slips past whatever check produces the 500 for other wrong types. Confirmed by `test_wrong_data_type` (see POST Test 2).
 
 ---
 

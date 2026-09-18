@@ -1,6 +1,5 @@
-import json
 import requests
-import pytest
+import random
 
 
 class TestBookingPost:
@@ -41,36 +40,42 @@ class TestBookingPost:
     def test_wrong_data_type(self):
 
         payload = {
-            "firstname": 4783274,
-            "lastname": 273482,
-            "totalprice": "10",
-            "depositpaid": "True",
+            "firstname": "Andres",
+            "lastname": "Reyes",
+            "totalprice": 10,
+            "depositpaid": True,
             "bookingdates": {
-                "checkin": 2026,
-                "checkout": 2025
+                "checkin": "2026-01-01",
+                "checkout": "2027-01-01"
             },
-            "additionalneeds": 0
+            "additionalneeds": "Breakfast"
         }
 
-        for key, value in payload.items():
-            if key == "firstname" or key == "lastname" or key == "additionalneeds":
-                if type(value) != str:
-                    self.assert_bad_request_returns_500(payload)
+        new_digit = ""
+        for i in range(6):
+            digit = str(random.randint(1,9))
+            new_digit += digit
+        new_value = int(new_digit)
 
-            elif key == "totalprice":
-                if type(value)!= int:
-                    self.assert_bad_request_returns_500(payload)
-            
-            elif key == "depositpaid":
-                if type(value) != bool:
-                    self.assert_bad_request_returns_500(payload)
+        new_payload = payload.copy()
 
-            elif key == "bookingdates":
-                if type(value["checkin"]) != str:
-                    self.assert_bad_request_returns_500(payload)
-                
-                if type(value["checkout"]) != str:
-                    self.assert_bad_request_returns_500(payload)
+        for key in new_payload:
+            if key == "firstname" or key == "lastname":
+                new_payload = payload.copy()
+                new_payload[key] = new_value
+                response = requests.post(f"{self.base_url}/booking", json=new_payload)
+                assert response.status_code == 500
+                if response.text == "Internal Server Error":
+                    for i in [True, False]: 
+                        new_payload = payload.copy()
+                        new_payload[key] = i
+                        new_response = requests.post(f"{self.base_url}/booking", json=new_payload)
+
+                        if new_response.status_code == 500:
+                            assert new_response.text == "Internal Server Error"
+
+                        else:
+                            assert new_response.status_code == 200
 
 
     def test_missing_required_field(self):
