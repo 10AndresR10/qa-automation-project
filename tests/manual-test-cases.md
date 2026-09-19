@@ -32,11 +32,15 @@ Creates a new booking with valid data.
 Expected: 200
 Actual: 200 ✅
 
-**Test 2: POST request with a wrong data type in `firstname`/`lastname`**
-(Scope narrowed to these two fields to dig into type-coercion behavior; `totalprice`, `depositpaid`, `bookingdates`, and `additionalneeds` are no longer covered by this test — wrong-type behavior for those fields is untested for now.)
+**Test 2: POST request with a wrong data type in `firstname`/`lastname`/`totalprice`**
+(Scope covers these three fields; `depositpaid`, `bookingdates`, and `additionalneeds` are not covered by this test — wrong-type behavior for those fields is untested for now.)
 Expected (assumed): 400 Bad Request
-Actual: **500 Internal Server Error** ("Internal Server Error" body) when `firstname`/`lastname` is a number or the boolean `True`.
+Actual for `firstname`/`lastname`: **500 Internal Server Error** ("Internal Server Error" body) when the value is a number or the boolean `True`.
 - 🐛 **Bug:** boolean values are handled inconsistently — `firstname`/`lastname: True` returns **500**, but `firstname`/`lastname: False` is silently accepted with **200** and stored as the literal value `false` instead of being rejected like every other wrong type (see bug #14).
+
+Actual for `totalprice`:
+- A numeric string (e.g. `"543219"`) → **200**, silently coerced to the equivalent integer — reasonable type coercion, not a bug.
+- The boolean `True` or `False` → **200**, but the returned/stored `totalprice` comes back as **`None`** — 🐛 **Bug:** the same silent corruption as bug #4 (previously only confirmed via the empty-string test), now also confirmed for the wrong-data-type case. Unlike `firstname`/`lastname`, `totalprice` does not distinguish `True` from `False`: both are corrupted to `None` rather than one of them raising a 500. Confirmed by `test_wrong_data_type`.
 
 **Test 3: POST request with a missing required field**
 Expected (assumed): 400 Bad Request for any omitted field
@@ -135,7 +139,7 @@ PUT method test cases are complete — all planned cases (happy path, wrong data
 1. **Invalid input triggers 500s, not 400s — for mistyped fields.** A malformed field type (wrong data type) results in a raw `500 Internal Server Error` rather than a client-facing `400 Bad Request`, on both POST and PUT. A *missing* required field behaves inconsistently across methods — see bug #9.
 2. **Non-standard/invalid IDs on GET return 404, not 400.** Malformed IDs, whitespace IDs, and oversized IDs are all treated the same as "not found" — there is no separate bad-request path for unparseable IDs.
 3. **`additionalneeds` is optional**, not required — omitting it returns 200, unlike every other field.
-4. **Empty strings and malformed data are silently accepted (200)** instead of rejected, and in the case of `totalprice` sent as a boolean, the value is **corrupted to `None`** rather than validated or rejected. This is a data-integrity bug, not just a missing-validation issue.
+4. **Empty strings and malformed data are silently accepted (200)** instead of rejected, and in the case of `totalprice` sent as a boolean, the value is **corrupted to `None`** rather than validated or rejected. This is a data-integrity bug, not just a missing-validation issue. Confirmed via both the empty-string test (`totalprice: False`, see POST Test 4) and the wrong-data-type test (`totalprice: True`/`False`, see POST Test 2) — `totalprice` is corrupted to `None` for either boolean value, unlike `firstname`/`lastname`'s `True`-vs-`False` split (bug #14).
 5. **No length limit on string fields.** Fields up to 360 characters (`firstname`, `lastname`, `additionalneeds`) are accepted and returned as-is with a 200 — no server-side length validation.
 6. **Invalid calendar dates are silently coerced, not rejected.** An out-of-range date like `checkin: "2099-13-01"` (month 13) or `checkout: "1999-01-32"` (day 32) returns 200, and both values come back corrupted to `"0NaN-aN-aN"` rather than the request being rejected — consistent with bug #4.
 7. ~~**Still untested:** the valid-range half of Test 6 (checkout genuinely after checkin) has not been automated yet.~~ **Resolved:** the valid-range half of Test 6 is now automated in `test_equivalence_partitioning_valid_dates` (see Test 6b) — the API correctly returns the dates as sent for a well-formed, chronologically-ordered pair.

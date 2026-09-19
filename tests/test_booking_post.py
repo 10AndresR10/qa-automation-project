@@ -77,6 +77,20 @@ class TestBookingPost:
                         else:
                             assert new_response.status_code == 200
 
+            elif key == "totalprice":
+                new_payload = payload.copy()
+                new_payload[key] = new_digit
+                response = requests.post(f"{self.base_url}/booking", json= new_payload)
+                assert response.status_code == 200
+
+                for i in [True, False]:
+                    new_payload = payload.copy()
+                    new_payload[key] = i
+                    new_response = requests.post(f"{self.base_url}/booking", json=new_payload)
+                    body = new_response.json()
+                    assert new_response.status_code == 200
+                    stored_value = body["booking"]["totalprice"]
+                    assert stored_value is None, f"Expected totalprice to be corrupted to null for input {i}, but got {stored_value}"
 
     def test_missing_required_field(self):
 
