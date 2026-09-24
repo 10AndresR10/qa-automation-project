@@ -32,8 +32,8 @@ Creates a new booking with valid data.
 Expected: 200
 Actual: 200 ✅
 
-**Test 2: POST request with a wrong data type in `firstname`/`lastname`/`totalprice`/`depositpaid`/`bookingdates.checkin`/`bookingdates.checkout`**
-(Scope covers these six fields; `additionalneeds` is not covered by this test — wrong-type behavior for that field is untested for now.)
+**Test 2: POST request with a wrong data type in every field**
+(Scope covers all seven fields: `firstname`, `lastname`, `totalprice`, `depositpaid`, `bookingdates.checkin`, `bookingdates.checkout`, `additionalneeds`.)
 Expected (assumed): 400 Bad Request
 Actual for `firstname`/`lastname`: **500 Internal Server Error** ("Internal Server Error" body) when the value is a number or the boolean `True`.
 - 🐛 **Bug:** boolean values are handled inconsistently — `firstname`/`lastname: True` returns **500**, but `firstname`/`lastname: False` is silently accepted with **200** and stored as the literal value `false` instead of being rejected like every other wrong type (see bug #14).
@@ -48,7 +48,16 @@ Actual for `depositpaid`:
 - The integer `0` or `1` → **200**, coerced to `False`/`True` respectively (`bool(0)`/`bool(1)`) — reasonable numeric-truthiness coercion, not a bug. Unlike `totalprice`, `depositpaid` doesn't corrupt wrong-type input to `None`; it coerces it to a sensible boolean. Confirmed by `test_wrong_data_type`.
 
 Actual for `bookingdates.checkin`/`bookingdates.checkout`:
-- A numeric string (e.g. `"543219"`) in place of either date → **200**, but the returned/stored `checkin`/`checkout` comes back corrupted to **`"0NaN-aN-aN"`** — the same coercion as bug #6 (invalid calendar dates), not a distinct behavior. Each date field is tested independently (the other date keeps its valid value), so the corruption is confirmed per field rather than as a side effect of the other. Confirmed by `test_wrong_data_type`.
+- A 6-digit numeric string in place of either date → **200**, but the stored value depends on the number, because the API parses it as a **year**:
+  - Above `275760` (the maximum year a JavaScript `Date` supports), e.g. `"543219"` → corrupted to **`"0NaN-aN-aN"`**, the same coercion as bug #6.
+  - At or below `275760`, e.g. `"193735"` → stored as **`"3735-01-01"`** — 🐛 **Bug:** the number is accepted as a valid year and silently truncated to its last four digits (`"123456"` → `"3456-01-01"`, `"200000"` → `"0000-01-01"`), producing a plausible-looking but wrong date (see bug #16).
+- Each date field is tested independently (the other date keeps its valid value).
+- ⚠️ **Test status: FAILING intermittently.** `test_wrong_data_type` uses a random 6-digit value and asserts `"0NaN-aN-aN"` only, so it fails whenever the random value is ≤ `275760` (≈19% per date field, ≈35% of runs overall). Observed failure: input `"193735"` → `"3735-01-01"`. The assertion needs to account for both outcomes, or use fixed inputs from each partition.
+
+Actual for `additionalneeds`:
+- An integer (e.g. `543219`) → **200**, stored as the integer `543219`, not converted to a string.
+- The boolean `True` or `False` → **200**, stored as the boolean `true`/`false`. Confirmed by `test_wrong_data_type`.
+- 🐛 **Bug:** no type validation at all on `additionalneeds` — every wrong type is accepted and stored verbatim with its wrong type, unlike `firstname`/`lastname`, which reject numbers and `True` with a 500 (see bug #15).
 
 **Test 3: POST request with a missing required field**
 Expected (assumed): 400 Bad Request for any omitted field
@@ -158,6 +167,8 @@ PUT method test cases are complete — all planned cases (happy path, wrong data
 12. **DELETE doesn't distinguish a malformed ID from a not-found one.** A malformed (alphanumeric) ID on DELETE returns the same `405 Method Not Allowed` as a well-formed but non-existent ID (bug #11), unlike GET, which returns `404 Not Found` for both malformed and non-existent IDs alike (bug #2) — DELETE and GET are each internally consistent, but disagree with each other on the status code for the same class of condition.
 13. **PUT accepts empty strings for `firstname`/`lastname`/`additionalneeds`, but corrupts `totalprice` and `depositpaid`.** Sending `""` for `totalprice` returns 200 but the stored value comes back as `null` (matching bug #4's POST-side corruption), and sending `""` for `depositpaid` returns 200 but the stored value comes back coerced to boolean `false` — neither is rejected nor stored as sent. Both are now confirmed by automated assertions in `test_empty_string_field` (no longer `xfail`). Replacing the whole `bookingdates` object with `""` is correctly rejected with 400, but an empty string for just a nested `bookingdates.checkin`/`checkout` field is accepted with 200 and corrupted to `"0NaN-aN-aN"`, consistent with bug #6 (see PUT Test 7, confirmed by `test_empty_string_nested_bookingdates_field`).
 14. **POST treats the wrong-type boolean `False` differently from `True` on string fields.** Sending `firstname`/`lastname: True` returns 500 (consistent with bug #1), but sending `False` for the same field is silently accepted with 200 and stored as the literal `false` — the falsy value slips past whatever check produces the 500 for other wrong types. Confirmed by `test_wrong_data_type` (see POST Test 2).
+15. **`additionalneeds` has no type validation.** On POST, an integer or boolean `additionalneeds` is accepted with 200 and stored with its wrong type (`543219`, `true`, `false`) — no rejection and no conversion to a string, unlike the other string fields `firstname`/`lastname`, which return 500 for the same inputs (bug #1, bug #14). Confirmed by `test_wrong_data_type` (see POST Test 2).
+16. **Numeric strings in `bookingdates` are parsed as years and silently truncated.** On POST, a numeric string such as `"193735"` for `checkin`/`checkout` is accepted with 200 and stored as `"3735-01-01"` — the API treats it as year 193735 and keeps only the last four digits. Values above `275760` (the JavaScript `Date` year limit) fall back to `"0NaN-aN-aN"` (bug #6). The truncated result looks like a valid date, which makes this worse than the `NaN` case: the corruption is hard to spot. Found when `test_wrong_data_type` failed intermittently (see POST Test 2).
 
 ---
 

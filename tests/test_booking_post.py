@@ -115,8 +115,7 @@ class TestBookingPost:
                     assert new_response.status_code == 200
                     assert stored_value == bool(i), f"Expected depositpaid to coerce {i} to {bool((i))}, but got {stored_value}"
 
-            elif key == "bookingdates":
-                
+            elif key == "bookingdates":                
                 for item in new_payload[key]:
                     new_payload = payload.copy()
                     new_payload[key] = payload[key].copy()
@@ -125,7 +124,22 @@ class TestBookingPost:
                     assert response.status_code == 200
                     body = response.json()
                     stored_value = body["booking"]["bookingdates"][item]    
-                    assert "0NaN-aN-aN" in stored_value, f"Expected {item} to be corrupted to a NaN-containing string for input '{new_digit}', but got {stored_value}"       
+                    assert "0NaN-aN-aN" in stored_value, f"Expected {item} to be corrupted to a NaN-containing string for input '{new_digit}', but got {stored_value}"
+
+            elif key == "additionalneeds":
+                new_payload = payload.copy()
+                new_payload[key] = new_value
+                response = requests.post(f"{self.base_url}/booking", json=new_payload)
+                assert response.status_code == 200
+                
+                for item in [True, False]:
+                    new_payload = payload.copy()
+                    new_payload[key] = item
+                    new_response = requests.post(f"{self.base_url}/booking", json=new_payload)
+                    assert new_response.status_code == 200
+                    body = new_response.json()
+                    stored_value = body["booking"][key]
+                    assert stored_value == bool(item), f"Expected {key} to coerce {item} to {bool({item})}, buy got {stored_value}"
 
 
     def test_missing_required_field(self):
