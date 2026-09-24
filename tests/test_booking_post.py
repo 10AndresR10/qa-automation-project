@@ -119,6 +119,7 @@ class TestBookingPost:
                 
                 for item in new_payload[key]:
                     new_payload = payload.copy()
+                    new_payload[key] = payload[key].copy()
                     new_payload[key][item] = new_digit
                     response = requests.post(f"{self.base_url}/booking", json=new_payload)
                     assert response.status_code == 200

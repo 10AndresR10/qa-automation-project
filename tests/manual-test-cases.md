@@ -48,7 +48,7 @@ Actual for `depositpaid`:
 - The integer `0` or `1` → **200**, coerced to `False`/`True` respectively (`bool(0)`/`bool(1)`) — reasonable numeric-truthiness coercion, not a bug. Unlike `totalprice`, `depositpaid` doesn't corrupt wrong-type input to `None`; it coerces it to a sensible boolean. Confirmed by `test_wrong_data_type`.
 
 Actual for `bookingdates.checkin`/`bookingdates.checkout`:
-- A numeric string (e.g. `"543219"`) in place of either date → **200**, but the returned/stored `checkin`/`checkout` comes back corrupted to **`"0NaN-aN-aN"`** — the same coercion as bug #6 (invalid calendar dates), not a distinct behavior. Confirmed by `test_wrong_data_type`.
+- A numeric string (e.g. `"543219"`) in place of either date → **200**, but the returned/stored `checkin`/`checkout` comes back corrupted to **`"0NaN-aN-aN"`** — the same coercion as bug #6 (invalid calendar dates), not a distinct behavior. Each date field is tested independently (the other date keeps its valid value), so the corruption is confirmed per field rather than as a side effect of the other. Confirmed by `test_wrong_data_type`.
 
 **Test 3: POST request with a missing required field**
 Expected (assumed): 400 Bad Request for any omitted field
