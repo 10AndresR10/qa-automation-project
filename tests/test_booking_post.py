@@ -116,13 +116,15 @@ class TestBookingPost:
                     assert stored_value == bool(i), f"Expected depositpaid to coerce {i} to {bool((i))}, but got {stored_value}"
 
             elif key == "bookingdates":
-                new_payload = payload.copy()
-                new_payload[key]["checkin"] = new_digit
-                response = requests.post(f"{self.base_url}/booking", json=new_payload)
-                assert response.status_code == 200
-                body = response.json()
-                stored_value = body["booking"]["bookingdates"]["checkin"]    
-                assert "0NaN-aN-aN" in stored_value, f"Expected checkin to be corrupted to a NaN-containig string for inout '{new_digit}', but got {stored_value}"        
+                
+                for item in new_payload[key]:
+                    new_payload = payload.copy()
+                    new_payload[key][item] = new_digit
+                    response = requests.post(f"{self.base_url}/booking", json=new_payload)
+                    assert response.status_code == 200
+                    body = response.json()
+                    stored_value = body["booking"]["bookingdates"][item]    
+                    assert "0NaN-aN-aN" in stored_value, f"Expected {item} to be corrupted to a NaN-containing string for input '{new_digit}', but got {stored_value}"       
 
 
     def test_missing_required_field(self):

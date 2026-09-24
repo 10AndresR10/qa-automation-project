@@ -32,8 +32,8 @@ Creates a new booking with valid data.
 Expected: 200
 Actual: 200 ✅
 
-**Test 2: POST request with a wrong data type in `firstname`/`lastname`/`totalprice`/`depositpaid`/`bookingdates.checkin`**
-(Scope covers these five fields; `additionalneeds` is not covered by this test — wrong-type behavior for that field is untested for now.)
+**Test 2: POST request with a wrong data type in `firstname`/`lastname`/`totalprice`/`depositpaid`/`bookingdates.checkin`/`bookingdates.checkout`**
+(Scope covers these six fields; `additionalneeds` is not covered by this test — wrong-type behavior for that field is untested for now.)
 Expected (assumed): 400 Bad Request
 Actual for `firstname`/`lastname`: **500 Internal Server Error** ("Internal Server Error" body) when the value is a number or the boolean `True`.
 - 🐛 **Bug:** boolean values are handled inconsistently — `firstname`/`lastname: True` returns **500**, but `firstname`/`lastname: False` is silently accepted with **200** and stored as the literal value `false` instead of being rejected like every other wrong type (see bug #14).
@@ -47,8 +47,8 @@ Actual for `depositpaid`:
 - A large integer (e.g. `543219`) → **200** (stored value not asserted, but no rejection).
 - The integer `0` or `1` → **200**, coerced to `False`/`True` respectively (`bool(0)`/`bool(1)`) — reasonable numeric-truthiness coercion, not a bug. Unlike `totalprice`, `depositpaid` doesn't corrupt wrong-type input to `None`; it coerces it to a sensible boolean. Confirmed by `test_wrong_data_type`.
 
-Actual for `bookingdates.checkin`:
-- A numeric string (e.g. `"543219"`) in place of a date → **200**, but the returned/stored `checkin` comes back corrupted to **`"0NaN-aN-aN"`** — the same coercion as bug #6 (invalid calendar dates), not a distinct behavior. Confirmed by `test_wrong_data_type`.
+Actual for `bookingdates.checkin`/`bookingdates.checkout`:
+- A numeric string (e.g. `"543219"`) in place of either date → **200**, but the returned/stored `checkin`/`checkout` comes back corrupted to **`"0NaN-aN-aN"`** — the same coercion as bug #6 (invalid calendar dates), not a distinct behavior. Confirmed by `test_wrong_data_type`.
 
 **Test 3: POST request with a missing required field**
 Expected (assumed): 400 Bad Request for any omitted field
