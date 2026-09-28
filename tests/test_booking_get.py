@@ -1,11 +1,9 @@
 import requests
 import pytest
 
-class TestBookingGet:
-    base_url = "https://restful-booker.herokuapp.com"
-
+class TestBookingGet:    
     @pytest.fixture
-    def existing_booking_id(self):
+    def existing_booking_id(self, base_url):
         payload = {
             "firstname": "John",
             "lastname": "Smith",
@@ -17,12 +15,12 @@ class TestBookingGet:
             },
             "additionalneeds": "Breakfast"
         }
-        response = requests.post(f"{self.base_url}/booking", json=payload)
+        response = requests.post(f"{base_url}/booking", json=payload)
         assert response.status_code == 200
         return response.json()["bookingid"]
 
-    def test_get_method(self, existing_booking_id):
-        response = requests.get(f"{self.base_url}/booking/{existing_booking_id}")
+    def test_get_method(self, base_url, existing_booking_id):
+        response = requests.get(f"{base_url}/booking/{existing_booking_id}")
 
         assert response.status_code == 200
 
@@ -36,23 +34,23 @@ class TestBookingGet:
         assert "checkin" in body["bookingdates"]
         assert "checkout" in body["bookingdates"]
 
-    def test_get_malformed_id(self):
-        response = requests.get(f"{self.base_url}/booking/abc")
+    def test_get_malformed_id(self, base_url):
+        response = requests.get(f"{base_url}/booking/abc")
         assert response.status_code == 404
         assert "Not Found" in response.text
 
-    def test_get_non_existent_id(self):
-        response = requests.get(f"{self.base_url}/booking/9999")
+    def test_get_non_existent_id(self, base_url):
+        response = requests.get(f"{base_url}/booking/9999")
         assert response.status_code == 404
         assert "Not Found" in response.text
 
-    def test_an_id_of_whitespace(self):
-        response = requests.get(f"{self.base_url}/booking/    ")
+    def test_an_id_of_whitespace(self, base_url):
+        response = requests.get(f"{base_url}/booking/    ")
         assert response.status_code == 404
         assert "Not Found" in response.text
 
-    def test_an_extremely_large_id(self):
-        response = requests.get(f"{self.base_url}/booking/99999909029349309423049230940249032492304")
+    def test_an_extremely_large_id(self, base_url):
+        response = requests.get(f"{base_url}/booking/99999909029349309423049230940249032492304")
         assert response.status_code == 404
         assert "Not Found" in response.text
 
