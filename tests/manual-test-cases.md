@@ -52,7 +52,7 @@ Actual for `bookingdates.checkin`/`bookingdates.checkout`:
   - Above `275760` (the maximum year a JavaScript `Date` supports), e.g. `"543219"` → corrupted to **`"0NaN-aN-aN"`**, the same coercion as bug #6.
   - At or below `275760`, e.g. `"193735"` → stored as **`"3735-01-01"`** — 🐛 **Bug:** the number is accepted as a valid year and silently truncated to its last four digits (`"123456"` → `"3456-01-01"`, `"200000"` → `"0000-01-01"`), producing a plausible-looking but wrong date (see bug #16).
 - Each date field is tested independently (the other date keeps its valid value).
-- ⚠️ **Test status: FAILING intermittently.** `test_wrong_data_type` uses a random 6-digit value and asserts `"0NaN-aN-aN"` only, so it fails whenever the random value is ≤ `275760` (≈19% per date field, ≈35% of runs overall). Observed failure: input `"193735"` → `"3735-01-01"`. The assertion needs to account for both outcomes, or use fixed inputs from each partition.
+- ⚠️ **Test status: FLAKY (passes by chance).** `test_wrong_data_type` uses a random 6-digit value and asserts `"0NaN-aN-aN"` only, so it fails whenever the random value is ≤ `275760`. The same random value is used for both `checkin` and `checkout`, so the two fields pass or fail together: ≈19% of runs fail (not ≈35% as first estimated). Observed failure: input `"193735"` → `"3735-01-01"`. On 2026-09-28 the test passed 7 of 7 runs, but a direct re-check confirmed the bug is still there (`"193735"` → `"3735-01-01"`, `"123456"` → `"3456-01-01"`, `"543219"` → `"0NaN-aN-aN"`). A green run doesn't mean the behavior changed. The assertion needs to account for both outcomes, or use fixed inputs from each partition.
 
 Actual for `additionalneeds`:
 - An integer (e.g. `543219`) → **200**, stored as the integer `543219`, not converted to a string.
@@ -86,6 +86,11 @@ Actual: **200** — both invalid dates are silently coerced to `"0NaN-aN-aN"` in
 (Tested with a well-formed pair where `checkout` genuinely comes after `checkin`: `checkin: "2026-12-01"`, `checkout: "2026-12-10"`.)
 Expected: 200, both dates returned as sent.
 Actual: **200** ✅ — both dates are returned unmodified, as expected. Confirmed by `test_equivalence_partitioning_valid_dates`. This completes the equivalence-partitioning pair for Test 6 (see bug #7, now resolved).
+
+---
+
+**POST test run — 2026-09-28** (`test_booking_post.py`, now using the shared `base_url` fixture from `conftest.py`)
+All 7 tests pass: `test_post_method`, `test_wrong_data_type`, `test_missing_required_field`, `test_empty_string_field`, `test_extremely_long_string`, `test_equivalence_partitioning_checkvariables`, `test_equivalence_partitioning_valid_dates`. The results match the Actual values documented above, and no API behavior has changed. Caveat: `test_wrong_data_type` is still flaky on the `bookingdates` branch (see Test 2 and bug #16). A passing run means the random value happened to fall above `275760`.
 
 ---
 
@@ -168,7 +173,7 @@ PUT method test cases are complete — all planned cases (happy path, wrong data
 13. **PUT accepts empty strings for `firstname`/`lastname`/`additionalneeds`, but corrupts `totalprice` and `depositpaid`.** Sending `""` for `totalprice` returns 200 but the stored value comes back as `null` (matching bug #4's POST-side corruption), and sending `""` for `depositpaid` returns 200 but the stored value comes back coerced to boolean `false` — neither is rejected nor stored as sent. Both are now confirmed by automated assertions in `test_empty_string_field` (no longer `xfail`). Replacing the whole `bookingdates` object with `""` is correctly rejected with 400, but an empty string for just a nested `bookingdates.checkin`/`checkout` field is accepted with 200 and corrupted to `"0NaN-aN-aN"`, consistent with bug #6 (see PUT Test 7, confirmed by `test_empty_string_nested_bookingdates_field`).
 14. **POST treats the wrong-type boolean `False` differently from `True` on string fields.** Sending `firstname`/`lastname: True` returns 500 (consistent with bug #1), but sending `False` for the same field is silently accepted with 200 and stored as the literal `false` — the falsy value slips past whatever check produces the 500 for other wrong types. Confirmed by `test_wrong_data_type` (see POST Test 2).
 15. **`additionalneeds` has no type validation.** On POST, an integer or boolean `additionalneeds` is accepted with 200 and stored with its wrong type (`543219`, `true`, `false`) — no rejection and no conversion to a string, unlike the other string fields `firstname`/`lastname`, which return 500 for the same inputs (bug #1, bug #14). Confirmed by `test_wrong_data_type` (see POST Test 2).
-16. **Numeric strings in `bookingdates` are parsed as years and silently truncated.** On POST, a numeric string such as `"193735"` for `checkin`/`checkout` is accepted with 200 and stored as `"3735-01-01"` — the API treats it as year 193735 and keeps only the last four digits. Values above `275760` (the JavaScript `Date` year limit) fall back to `"0NaN-aN-aN"` (bug #6). The truncated result looks like a valid date, which makes this worse than the `NaN` case: the corruption is hard to spot. Found when `test_wrong_data_type` failed intermittently (see POST Test 2).
+16. **Numeric strings in `bookingdates` are parsed as years and silently truncated.** On POST, a numeric string such as `"193735"` for `checkin`/`checkout` is accepted with 200 and stored as `"3735-01-01"` — the API treats it as year 193735 and keeps only the last four digits. Values above `275760` (the JavaScript `Date` year limit) fall back to `"0NaN-aN-aN"` (bug #6). The truncated result looks like a valid date, which makes this worse than the `NaN` case: the corruption is hard to spot. Found when `test_wrong_data_type` failed intermittently (see POST Test 2). Re-confirmed on 2026-09-28 by sending the requests directly: still present.
 
 ---
 
