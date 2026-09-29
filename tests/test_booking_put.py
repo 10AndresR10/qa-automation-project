@@ -3,9 +3,7 @@ import requests
 
 class TestBookingPut:
 
-    base_url = "https://restful-booker.herokuapp.com"
-
-    def test_put_method(self):
+    def test_put_method(self, base_url):
 
         payload = {
             "firstname": "John",
@@ -19,11 +17,11 @@ class TestBookingPut:
             "additionalneeds": "Breakfast"
         }
 
-        response = requests.post(f"{self.base_url}/booking", json=payload)
+        response = requests.post(f"{base_url}/booking", json=payload)
 
         id = response.json()["bookingid"]
 
-        auth_response = requests.post(f"{self.base_url}/auth",json={"username": "admin", "password": "password123"})
+        auth_response = requests.post(f"{base_url}/auth",json={"username": "admin", "password": "password123"})
         token = auth_response.json()["token"]
 
         payload = {
@@ -38,7 +36,7 @@ class TestBookingPut:
             "additionalneeds": "Breakfast"
             }
 
-        update_response = requests.put(f"{self.base_url}/booking/{id}", json=payload, headers={"Cookie": f"token={token}"})
+        update_response = requests.put(f"{base_url}/booking/{id}", json=payload, headers={"Cookie": f"token={token}"})
 
         body = update_response.json()
             
@@ -52,7 +50,7 @@ class TestBookingPut:
         assert body ["additionalneeds"] == "Breakfast"
             
             
-    def test_put_wrong_data(self):
+    def test_put_wrong_data(self, base_url):
 
         payload = {
             "firstname": "John",
@@ -66,11 +64,11 @@ class TestBookingPut:
             "additionalneeds": "Breakfast"
         }
 
-        response = requests.post(f"{self.base_url}/booking", json=payload)
+        response = requests.post(f"{base_url}/booking", json=payload)
 
         id = response.json()["bookingid"]
 
-        auth_response = requests.post(f"{self.base_url}/auth",json={"username": "admin", "password": "password123"})
+        auth_response = requests.post(f"{base_url}/auth",json={"username": "admin", "password": "password123"})
         token = auth_response.json()["token"]
         payload = {
             "firstname": 0000,
@@ -84,11 +82,11 @@ class TestBookingPut:
             "additionalneeds": False
             }
 
-        new_response = requests.put(f"{self.base_url}/booking/{id}", json= payload, headers={"Cookie": f"token={token}"})
+        new_response = requests.put(f"{base_url}/booking/{id}", json= payload, headers={"Cookie": f"token={token}"})
         assert new_response.status_code == 500
         assert new_response.text == "Internal Server Error"
 
-    def test_non_existent_booking_ID(self):
+    def test_non_existent_booking_ID(self, base_url):
 
         none_id = 99999999999
 
@@ -104,15 +102,15 @@ class TestBookingPut:
             "additionalneeds": "Breakfast"
         }
 
-        auth_response = requests.post(f"{self.base_url}/auth",json={"username": "admin", "password": "password123"})
+        auth_response = requests.post(f"{base_url}/auth",json={"username": "admin", "password": "password123"})
         token = auth_response.json()["token"]
-        response = requests.put(f"{self.base_url}/booking/{none_id}", json= payload, headers= {"Cookie": f"token={token}"})
+        response = requests.put(f"{base_url}/booking/{none_id}", json= payload, headers= {"Cookie": f"token={token}"})
         
         assert response.status_code in [405, 403]
         if response.status_code == 405:
             assert response.text == "Method Not Allowed"
 
-    def test_missing_required_field(self):
+    def test_missing_required_field(self, base_url):
 
         payload = {
             "firstname": "John",
@@ -126,7 +124,7 @@ class TestBookingPut:
             "additionalneeds": "Breakfast"
         }
 
-        response = requests.post(f"{self.base_url}/booking", json= payload)
+        response = requests.post(f"{base_url}/booking", json= payload)
 
         wrong_payload = payload.copy()
 
@@ -134,52 +132,52 @@ class TestBookingPut:
 
         for key in list(wrong_payload):
 
-            auth_response = requests.post(f"{self.base_url}/auth", json={"username": "admin", "password": "password123"})
+            auth_response = requests.post(f"{base_url}/auth", json={"username": "admin", "password": "password123"})
             token = auth_response.json()["token"]
 
             if key == "firstname":
                 wrong_payload = payload.copy()
                 del wrong_payload[key]
-                new_response = requests.put(f"{self.base_url}/booking/{id}", json= wrong_payload, headers={"Cookie":f"token={token}"})
+                new_response = requests.put(f"{base_url}/booking/{id}", json= wrong_payload, headers={"Cookie":f"token={token}"})
                 assert new_response.status_code == 400 
                 assert new_response.text == "Bad Request"
 
             if key == "lastname":
                 wrong_payload = payload.copy()
                 del wrong_payload[key]
-                new_response = requests.put(f"{self.base_url}/booking/{id}", json= wrong_payload, headers={"Cookie":f"token={token}"})
+                new_response = requests.put(f"{base_url}/booking/{id}", json= wrong_payload, headers={"Cookie":f"token={token}"})
                 assert new_response.status_code == 400 
                 assert new_response.text == "Bad Request"
             
             if key == "depositpaid":
                 wrong_payload = payload.copy()
                 del wrong_payload[key]
-                new_response = requests.put(f"{self.base_url}/booking/{id}", json= wrong_payload, headers={"Cookie":f"token={token}"})
+                new_response = requests.put(f"{base_url}/booking/{id}", json= wrong_payload, headers={"Cookie":f"token={token}"})
                 assert new_response.status_code == 400 
                 assert new_response.text == "Bad Request"
             
             if key == "totalprice":
                 wrong_payload = payload.copy()
                 del wrong_payload[key]
-                new_response = requests.put(f"{self.base_url}/booking/{id}", json= wrong_payload, headers={"Cookie":f"token={token}"})
+                new_response = requests.put(f"{base_url}/booking/{id}", json= wrong_payload, headers={"Cookie":f"token={token}"})
                 assert new_response.status_code == 400 
                 assert new_response.text == "Bad Request"
             
             if key == "bookingdates":
                 wrong_payload = payload.copy()
                 del wrong_payload[key]
-                new_response = requests.put(f"{self.base_url}/booking/{id}", json= wrong_payload, headers={"Cookie":f"token={token}"})
+                new_response = requests.put(f"{base_url}/booking/{id}", json= wrong_payload, headers={"Cookie":f"token={token}"})
                 assert new_response.status_code == 400 
                 assert new_response.text == "Bad Request"
 
             if key == "additionalneeds":
                 wrong_payload = payload.copy()
                 del wrong_payload[key]
-                new_response = requests.put(f"{self.base_url}/booking/{id}", json= wrong_payload, headers={"Cookie":f"token={token}"})
+                new_response = requests.put(f"{base_url}/booking/{id}", json= wrong_payload, headers={"Cookie":f"token={token}"})
                 assert new_response.status_code == 200
             
 
-    def test_extremely_long_string_field(self):
+    def test_extremely_long_string_field(self, base_url):
 
         payload = {
             "firstname": "John",
@@ -193,13 +191,13 @@ class TestBookingPut:
             "additionalneeds": "Breakfast"
         }
 
-        response = requests.post(f"{self.base_url}/booking", json= payload)
+        response = requests.post(f"{base_url}/booking", json= payload)
 
         id = response.json()["bookingid"]
 
         long_string_payload = payload.copy()
 
-        auth_response = requests.post(f"{self.base_url}/auth", json={"username": "admin", "password": "password123"})
+        auth_response = requests.post(f"{base_url}/auth", json={"username": "admin", "password": "password123"})
         token = auth_response.json()["token"]
 
 
@@ -217,7 +215,7 @@ class TestBookingPut:
             else:
                 long_string_payload[key] = long_string
 
-            new_response = requests.put(f"{self.base_url}/booking/{id}", json= long_string_payload, headers={"Cookie": f"token={token}"})
+            new_response = requests.put(f"{base_url}/booking/{id}", json= long_string_payload, headers={"Cookie": f"token={token}"})
 
             assert new_response.status_code == 200
 
@@ -227,7 +225,7 @@ class TestBookingPut:
                 assert body["bookingdates"]["checkout"] == "0NaN-aN-aN"
 
 
-    def test_empty_string_field(self):
+    def test_empty_string_field(self, base_url):
 
         payload = {
             "firstname": "John",
@@ -241,18 +239,18 @@ class TestBookingPut:
             "additionalneeds": "Breakfast"
         }
 
-        response = requests.post(f"{self.base_url}/booking", json=payload)
+        response = requests.post(f"{base_url}/booking", json=payload)
         id = response.json()["bookingid"]
 
         empty_response= payload.copy()
 
-        auth_response = requests.post(f"{self.base_url}/auth", json={"username": "admin", "password": "password123"})
+        auth_response = requests.post(f"{base_url}/auth", json={"username": "admin", "password": "password123"})
         token = auth_response.json()["token"]
 
         for key in empty_response:
             empty_response = payload.copy()
             empty_response[key] = ""
-            new_response = requests.put(f"{self.base_url}/booking/{id}", json=empty_response, headers={"Cookie": f"token={token}"})
+            new_response = requests.put(f"{base_url}/booking/{id}", json=empty_response, headers={"Cookie": f"token={token}"})
 
             if new_response.status_code != 200:
                 assert new_response.status_code == 400
@@ -273,7 +271,7 @@ class TestBookingPut:
                     assert actual == ""
 
 
-    def test_empty_string_nested_bookingdates_field(self):
+    def test_empty_string_nested_bookingdates_field(self, base_url):
 
         payload = {
             "firstname": "John",
@@ -287,10 +285,10 @@ class TestBookingPut:
             "additionalneeds": "Breakfast"
         }
 
-        response = requests.post(f"{self.base_url}/booking", json=payload)
+        response = requests.post(f"{base_url}/booking", json=payload)
         id = response.json()["bookingid"]
 
-        auth_response = requests.post(f"{self.base_url}/auth", json={"username": "admin", "password": "password123"})
+        auth_response = requests.post(f"{base_url}/auth", json={"username": "admin", "password": "password123"})
         token = auth_response.json()["token"]
 
         for date_key in ["checkin", "checkout"]:
@@ -299,13 +297,13 @@ class TestBookingPut:
             update_payload["bookingdates"] = payload["bookingdates"].copy()
             update_payload["bookingdates"][date_key] = ""
 
-            new_response = requests.put(f"{self.base_url}/booking/{id}", json=update_payload, headers={"Cookie": f"token={token}"})
+            new_response = requests.put(f"{base_url}/booking/{id}", json=update_payload, headers={"Cookie": f"token={token}"})
 
             assert new_response.status_code == 200
             assert new_response.json()["bookingdates"][date_key] == "0NaN-aN-aN"
 
 
-    def test_no_cookie_auth(self):
+    def test_no_cookie_auth(self, base_url):
 
         payload = {
             "firstname": "John",
@@ -319,18 +317,18 @@ class TestBookingPut:
             "additionalneeds": "Breakfast"
         }
 
-        response = requests.post(f"{self.base_url}/booking", json=payload)
+        response = requests.post(f"{base_url}/booking", json=payload)
 
         id = response.json()["bookingid"]
 
         update_payload = payload.copy()
         update_payload["firstname"] = "Andres"
 
-        put_response = requests.put(f"{self.base_url}/booking/{id}", json=update_payload)
+        put_response = requests.put(f"{base_url}/booking/{id}", json=update_payload)
         assert put_response.status_code == 403
         assert put_response.text == "Forbidden"
 
-    def test_an_invalid_expired_token(self):
+    def test_an_invalid_expired_token(self, base_url):
 
         payload = {
             "firstname": "John",
@@ -344,14 +342,14 @@ class TestBookingPut:
             "additionalneeds": "Breakfast"
         }
 
-        response = requests.post(f"{self.base_url}/booking", json=payload)
+        response = requests.post(f"{base_url}/booking", json=payload)
         id = response.json()["bookingid"]
 
         update_payload = payload.copy()
 
         update_payload["firstname"] = "Andres"
 
-        new_response = requests.put(f"{self.base_url}/booking/{id}", json=update_payload, headers={"Cookie": "token=invalidtoken123"})
+        new_response = requests.put(f"{base_url}/booking/{id}", json=update_payload, headers={"Cookie": "token=invalidtoken123"})
 
         assert new_response.status_code == 403
         assert new_response.text == "Forbidden"
