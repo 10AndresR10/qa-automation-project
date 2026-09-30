@@ -125,7 +125,7 @@ class TestBookingPost:
                     if int(new_digit) > 275760: 
                         assert "0NaN-aN-aN" in stored_value, f"Expected {item} to be corrupted to a NaN-containing string for input '{new_digit}', but got {stored_value}"
                     elif int(new_digit) <= 275760:
-                        expected_year = new_digit[-4]
+                        expected_year = new_digit[-4:]
                         assert stored_value.startswith(expected_year), f"Expected {item} to be truncated to year '{expected_year}' from input '{new_digit}', but got '{stored_value}'"
 
             elif key == "additionalneeds":

@@ -53,7 +53,7 @@ Actual for `bookingdates.checkin`/`bookingdates.checkout`:
   - At or below `275760`, e.g. `"193735"` → stored as **`"3735-01-01"`** — 🐛 **Bug:** the number is accepted as a valid year and silently truncated to its last four digits (`"123456"` → `"3456-01-01"`, `"200000"` → `"0000-01-01"`), producing a plausible-looking but wrong date (see bug #16).
 - Each date field is tested independently (the other date keeps its valid value).
 - ✅ **Test status: FIXED (2026-09-29).** `test_wrong_data_type` used to assert only `"0NaN-aN-aN"`, so it failed whenever the random 6-digit value was ≤ `275760` (≈19% of runs; `checkin` and `checkout` share the same value, so they fail together). The test now branches on the value: above `275760` it expects `"0NaN-aN-aN"`, and at or below it expects the truncated year. A direct re-check confirmed both outcomes: `"193735"` → `"3735-01-01"`, `"123456"` → `"3456-01-01"`, `"543219"` → `"0NaN-aN-aN"`.
-  - ⚠️ **Caveat:** the truncated-year branch computes `expected_year = new_digit[-4]`, which is only one character (the 4th digit from the end), not the last four digits. For `"193735"` it checks that the stored date starts with `"3"`, not `"3735"`. The test passes, but it would also pass for a wrong year that starts with the same digit.
+  - ✅ **Assertion tightened (2026-09-30):** the truncated-year branch used to compute `expected_year = new_digit[-4]`, which is only one character (the 4th digit from the end). It now uses `new_digit[-4:]`, the full last four digits, so for `"193735"` it checks that the stored date starts with `"3735"`, not just `"3"`. A wrong year that only shares its first digit no longer passes.
 
 Actual for `additionalneeds`:
 - An integer (e.g. `543219`) → **200**, stored as the integer `543219`, not converted to a string.
@@ -91,6 +91,8 @@ Actual: **200** ✅ — both dates are returned unmodified, as expected. Confirm
 ---
 
 **POST test run — 2026-09-29:** all 7 tests in `test_booking_post.py` pass. `test_wrong_data_type` is no longer flaky (see Test 2). See the full-suite results at the end of this file.
+
+**POST test run — 2026-09-30:** all 7 tests in `test_booking_post.py` pass after tightening the truncated-year assertion (see Test 2). `test_wrong_data_type` was then run 12 more times in a row: 12/12 passed. The date values are random, so a direct check was also made to confirm the API behavior hasn't changed: `"193735"` → `"3735-01-01"`, `"123456"` → `"3456-01-01"`, `"543219"` → `"0NaN-aN-aN"` (bug #16 still present).
 
 ---
 
