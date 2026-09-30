@@ -63,17 +63,20 @@ class TestBookingPost:
                 new_payload[key] = new_value
                 response = requests.post(f"{base_url}/booking", json=new_payload)
                 assert response.status_code == 500
-                if response.text == "Internal Server Error":
-                    for i in [True, False]: 
-                        new_payload = payload.copy()
-                        new_payload[key] = i
-                        new_response = requests.post(f"{base_url}/booking", json=new_payload)
+                assert response.text == "Internal Server Error"
+                expected_results = {True: 500, False: 200}
+                for i, expected_status in expected_results.items():
+                    new_payload = payload.copy()
+                    new_payload[key] = i
+                    new_response = requests.post(f"{base_url}/booking", json=new_payload)
+                    assert new_response.status_code == expected_status, f"Expected {expected_status} for {key}={i}, but got {new_response.status_code}"
 
-                        if new_response.status_code == 500:
-                            assert new_response.text == "Internal Server Error"
-
-                        else:
-                            assert new_response.status_code == 200
+                    if i:
+                        assert new_response.text == "Internal Server Error"
+                    else:
+                        body = new_response.json()
+                        stored_value = body["booking"][key]
+                        assert stored_value is False, f"Expected {key} to be stored as False for input {i}, but got {stored_value}"
             
             elif key == "totalprice":
                 new_payload = payload.copy()
