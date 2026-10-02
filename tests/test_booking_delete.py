@@ -6,7 +6,7 @@ import string
 
 class TestBookingDelete:
 
-    def test_delete_method(self, base_url):
+    def test_delete_method(self, base_url, token):
 
         payload = {
             "firstname": "John",
@@ -23,9 +23,6 @@ class TestBookingDelete:
         response = requests.post(f"{base_url}/booking", json=payload)
 
         id = response.json()["bookingid"]
-
-        auth_response = requests.post(f"{base_url}/auth", json={"username": "admin", "password": "password123"})
-        token = auth_response.json()["token"]
 
         new_response = requests.delete(f"{base_url}/booking/{id}", headers={"Cookie": f"token={token}"})
 
@@ -38,21 +35,17 @@ class TestBookingDelete:
         assert new_get.text == "Not Found"
         
     
-    def test_non_existent_booking_ID(self, base_url):
+    def test_non_existent_booking_ID(self, base_url, token):
 
         non_id = 9999
 
-        auth_response = requests.post(f"{base_url}/auth", json={"username": "admin", "password": "password123"})
-        token = auth_response.json()["token"]
-
         response = requests.delete(f"{base_url}/booking/{non_id}", headers={"Cookie": f"token={token}"})
-
         assert response.status_code in [405, 403]
         if response.status_code == 405:
             assert response.text == "Method Not Allowed"
 
     
-    def test_already_deleted_booking_ID(self, base_url):
+    def test_already_deleted_booking_ID(self, base_url, token):
 
         payload = {
             "firstname": "John",
@@ -69,9 +62,6 @@ class TestBookingDelete:
         response = requests.post(f"{base_url}/booking", json=payload)
         id = response.json()["bookingid"]
 
-        auth_response = requests.post(f"{base_url}/auth", json={"username": "admin", "password": "password123"})
-        token = auth_response.json()["token"]
-
         for i in range(2):
             new_response = requests.delete(f"{base_url}/booking/{id}", headers={"Cookie": f"token={token}"})
             if i == 0:
@@ -82,7 +72,7 @@ class TestBookingDelete:
                 assert new_response.text == "Method Not Allowed"
 
     
-    def test_malformed_id(self, base_url):
+    def test_malformed_id(self, base_url, token):
 
         payload = {
             "firstname": "John",
@@ -109,10 +99,6 @@ class TestBookingDelete:
             new_id += j
         for k in digits:
             new_id += k
-        
-        auth_response = requests.post(f"{base_url}/auth", json={"username": "admin", "password": "password123"})
-
-        token = auth_response.json()["token"]
 
         new_response = requests.delete(f"{base_url}/booking/{new_id}", headers= {"Cookie": f"token={token}"})
 
@@ -120,7 +106,7 @@ class TestBookingDelete:
         if new_response.status_code == 405:
             assert new_response.text == "Method Not Allowed"
 
-    def test_invalid_auth_token(self, base_url):
+    def test_invalid_auth_token(self, base_url, token):
 
         payload = {
             "firstname": "John",
@@ -135,9 +121,6 @@ class TestBookingDelete:
         }
 
         response = requests.post(f"{base_url}/booking", json=payload)
-
-        auth_response = requests.post(f"{base_url}/auth", json={"username": "admin", "password":"password123"})
-        token = auth_response.json()["token"]
 
         id = response.json()["bookingid"]
 
