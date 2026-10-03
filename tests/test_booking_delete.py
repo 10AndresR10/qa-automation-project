@@ -106,7 +106,7 @@ class TestBookingDelete:
         if new_response.status_code == 405:
             assert new_response.text == "Method Not Allowed"
 
-    def test_invalid_auth_token(self, base_url, token):
+    def test_invalid_auth_token(self, base_url):
 
         payload = {
             "firstname": "John",
