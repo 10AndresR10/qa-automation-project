@@ -3,7 +3,7 @@ import requests
 
 class TestBookingPut:
 
-    def test_put_method(self, base_url):
+    def test_put_method(self, base_url, token):
 
         payload = {
             "firstname": "John",
@@ -20,9 +20,6 @@ class TestBookingPut:
         response = requests.post(f"{base_url}/booking", json=payload)
 
         id = response.json()["bookingid"]
-
-        auth_response = requests.post(f"{base_url}/auth",json={"username": "admin", "password": "password123"})
-        token = auth_response.json()["token"]
 
         payload = {
             "firstname": "Andres",
@@ -50,7 +47,7 @@ class TestBookingPut:
         assert body ["additionalneeds"] == "Breakfast"
             
             
-    def test_put_wrong_data(self, base_url):
+    def test_put_wrong_data(self, base_url, token):
 
         payload = {
             "firstname": "John",
@@ -68,8 +65,6 @@ class TestBookingPut:
 
         id = response.json()["bookingid"]
 
-        auth_response = requests.post(f"{base_url}/auth",json={"username": "admin", "password": "password123"})
-        token = auth_response.json()["token"]
         payload = {
             "firstname": 0000,
             "lastname": True,
@@ -86,7 +81,7 @@ class TestBookingPut:
         assert new_response.status_code == 500
         assert new_response.text == "Internal Server Error"
 
-    def test_non_existent_booking_ID(self, base_url):
+    def test_non_existent_booking_ID(self, base_url, token):
 
         none_id = 99999999999
 
@@ -102,15 +97,13 @@ class TestBookingPut:
             "additionalneeds": "Breakfast"
         }
 
-        auth_response = requests.post(f"{base_url}/auth",json={"username": "admin", "password": "password123"})
-        token = auth_response.json()["token"]
         response = requests.put(f"{base_url}/booking/{none_id}", json= payload, headers= {"Cookie": f"token={token}"})
         
         assert response.status_code in [405, 403]
         if response.status_code == 405:
             assert response.text == "Method Not Allowed"
 
-    def test_missing_required_field(self, base_url):
+    def test_missing_required_field(self, base_url, token):
 
         payload = {
             "firstname": "John",
@@ -131,9 +124,6 @@ class TestBookingPut:
         id = response.json()["bookingid"]        
 
         for key in list(wrong_payload):
-
-            auth_response = requests.post(f"{base_url}/auth", json={"username": "admin", "password": "password123"})
-            token = auth_response.json()["token"]
 
             if key == "firstname":
                 wrong_payload = payload.copy()
@@ -177,7 +167,7 @@ class TestBookingPut:
                 assert new_response.status_code == 200
             
 
-    def test_extremely_long_string_field(self, base_url):
+    def test_extremely_long_string_field(self, base_url, token):
 
         payload = {
             "firstname": "John",
@@ -196,10 +186,6 @@ class TestBookingPut:
         id = response.json()["bookingid"]
 
         long_string_payload = payload.copy()
-
-        auth_response = requests.post(f"{base_url}/auth", json={"username": "admin", "password": "password123"})
-        token = auth_response.json()["token"]
-
 
         long_string = "Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres "
 
@@ -225,7 +211,7 @@ class TestBookingPut:
                 assert body["bookingdates"]["checkout"] == "0NaN-aN-aN"
 
 
-    def test_empty_string_field(self, base_url):
+    def test_empty_string_field(self, base_url, token):
 
         payload = {
             "firstname": "John",
@@ -243,9 +229,6 @@ class TestBookingPut:
         id = response.json()["bookingid"]
 
         empty_response= payload.copy()
-
-        auth_response = requests.post(f"{base_url}/auth", json={"username": "admin", "password": "password123"})
-        token = auth_response.json()["token"]
 
         for key in empty_response:
             empty_response = payload.copy()
@@ -271,7 +254,7 @@ class TestBookingPut:
                     assert actual == ""
 
 
-    def test_empty_string_nested_bookingdates_field(self, base_url):
+    def test_empty_string_nested_bookingdates_field(self, base_url, token):
 
         payload = {
             "firstname": "John",
@@ -287,9 +270,6 @@ class TestBookingPut:
 
         response = requests.post(f"{base_url}/booking", json=payload)
         id = response.json()["bookingid"]
-
-        auth_response = requests.post(f"{base_url}/auth", json={"username": "admin", "password": "password123"})
-        token = auth_response.json()["token"]
 
         for date_key in ["checkin", "checkout"]:
 
