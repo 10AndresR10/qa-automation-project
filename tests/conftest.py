@@ -31,4 +31,5 @@ def existing_booking_id(base_url):
 
     response = requests.post(f"{base_url}/booking", json=payload)
     assert response.status_code == 200
-    return response.json()["bookingid"]
+    body = response.json()
+    return {"id": body["bookingid"], "payload": payload}

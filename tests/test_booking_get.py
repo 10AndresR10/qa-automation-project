@@ -3,7 +3,7 @@ import pytest
 
 class TestBookingGet:
     def test_get_method(self, base_url, existing_booking_id):
-        response = requests.get(f"{base_url}/booking/{existing_booking_id}")
+        response = requests.get(f"{base_url}/booking/{existing_booking_id["id"]}")
 
         assert response.status_code == 200
 
