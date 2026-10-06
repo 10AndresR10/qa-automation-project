@@ -1,24 +1,7 @@
 import requests
 import pytest
 
-class TestBookingGet:    
-    @pytest.fixture
-    def existing_booking_id(self, base_url):
-        payload = {
-            "firstname": "John",
-            "lastname": "Smith",
-            "totalprice": 150,
-            "depositpaid": True,
-            "bookingdates": {
-                "checkin": "2026-01-01",
-                "checkout": "2026-01-05"
-            },
-            "additionalneeds": "Breakfast"
-        }
-        response = requests.post(f"{base_url}/booking", json=payload)
-        assert response.status_code == 200
-        return response.json()["bookingid"]
-
+class TestBookingGet:
     def test_get_method(self, base_url, existing_booking_id):
         response = requests.get(f"{base_url}/booking/{existing_booking_id}")
 
