@@ -11,7 +11,11 @@ Portfolio project for API test automation in Python, built against the
   - Malformed ID, non-existent ID, whitespace ID, extremely large ID
 - **POST /booking**
   - Happy path: valid payload creates a booking and returns the expected data
-  - Wrong data types in the payload
+  - Wrong data type in each field (asserts known API bugs: `firstname`/`lastname` accept `false` but reject `true`, `totalprice` corrupted to `null` for booleans, no type check on `additionalneeds`, numeric date strings truncated to a four-digit year)
+  - Missing required field (each field omitted in turn; `additionalneeds` is optional)
+  - Empty-string field(s) (asserts known API bug: `totalprice: false` corrupted to `null`)
+  - Extremely long string in the string fields
+  - Equivalence partitioning on `checkin`/`checkout`: invalid calendar dates (corrupted to `"0NaN-aN-aN"`) and valid dates
 - **PUT /booking/{id}**
   - Happy path: authenticated update of all fields on an existing booking
   - Wrong data types in the payload
