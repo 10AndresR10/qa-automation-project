@@ -17,10 +17,9 @@ class TestBookingPost:
             "additionalneeds": "Breakfast"
         }
         response = requests.post(f"{base_url}/booking", json=payload)
-
+        assert response.status_code == 200
         body = response.json()
 
-        assert response.status_code == 200
         assert body ["booking"]["firstname"] == "Andres"
         assert body ["booking"]["lastname"] == "Reyes"
         assert body ["booking"]["totalprice"] == 10
@@ -88,8 +87,8 @@ class TestBookingPost:
                     new_payload = payload.copy()
                     new_payload[key] = i
                     new_response = requests.post(f"{base_url}/booking", json=new_payload)
-                    body = new_response.json()
                     assert new_response.status_code == 200
+                    body = new_response.json()
                     stored_value = body["booking"]["totalprice"]
                     assert stored_value is None, f"Expected totalprice to be corrupted to null for input {i}, but got {stored_value}"
            
@@ -97,9 +96,9 @@ class TestBookingPost:
                 new_payload = payload.copy()
                 new_payload[key] = new_digit
                 response = requests.post(f"{base_url}/booking", json=new_payload)
+                assert response.status_code == 200
                 body = response.json()
                 stored_value = body["booking"]["depositpaid"]
-                assert response.status_code == 200
                 assert stored_value is True, f"Expected depositpaid to coerce truthy string '{new_digit}' to True, but got {stored_value}"
 
                 new_payload = payload.copy()
@@ -111,9 +110,9 @@ class TestBookingPost:
                     new_payload = payload.copy()
                     new_payload[key] = i
                     new_response = requests.post(f"{base_url}/booking", json=new_payload)
+                    assert new_response.status_code == 200
                     body = new_response.json()
                     stored_value = body["booking"]["depositpaid"]
-                    assert new_response.status_code == 200
                     assert stored_value == bool(i), f"Expected depositpaid to coerce {i} to {bool((i))}, but got {stored_value}"
 
             elif key == "bookingdates":                
@@ -217,11 +216,9 @@ class TestBookingPost:
             "additionalneeds": ""
         }
 
-    
         response = requests.post(f"{base_url}/booking", json=payload)
-        
-        body = response.json()
         assert response.status_code == 200
+        body = response.json()
         assert body["booking"]["firstname"] == ""
         assert body["booking"]["lastname"] == ""
         assert body["booking"]["totalprice"] is None
@@ -245,7 +242,7 @@ class TestBookingPost:
         }
 
         response = requests.post(f"{base_url}/booking", json= payload)
-
+        assert response.status_code == 200
         body = response.json()
 
         assert body["booking"]["firstname"] == payload["firstname"]
@@ -267,7 +264,7 @@ class TestBookingPost:
         }
 
         response = requests.post(f"{base_url}/booking", json= payload)
-        
+        assert response.status_code == 200
         body = response.json()
 
         assert body["booking"]["bookingdates"]["checkin"] == "0NaN-aN-aN"
