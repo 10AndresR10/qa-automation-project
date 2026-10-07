@@ -29,11 +29,6 @@ class TestBookingPost:
         assert body ["booking"]["additionalneeds"] == "Breakfast"
         assert "bookingid" in body
 
-    def assert_bad_request_returns_500(self, payload, base_url):
-        response = requests.post(f"{base_url}/booking", json=payload)
-        assert response.status_code == 500
-        assert response.text == "Internal Server Error"
-
     def test_wrong_data_type(self, base_url):
 
         payload = {

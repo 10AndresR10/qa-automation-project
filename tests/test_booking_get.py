@@ -1,5 +1,4 @@
 import requests
-import pytest
 
 class TestBookingGet:
     def test_get_method(self, base_url, existing_booking_id):
