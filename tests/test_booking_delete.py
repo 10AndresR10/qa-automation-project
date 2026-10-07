@@ -1,4 +1,3 @@
-import pytest
 import requests
 import random
 import string
@@ -6,30 +5,14 @@ import string
 
 class TestBookingDelete:
 
-    def test_delete_method(self, base_url, token):
+    def test_delete_method(self, base_url, token, existing_booking_id):
 
-        payload = {
-            "firstname": "John",
-            "lastname": "Smith",
-            "totalprice": 150,
-            "depositpaid": True,
-            "bookingdates": {
-                "checkin": "2026-01-01",
-                "checkout": "2026-01-05"
-            },
-            "additionalneeds": "Breakfast"
-        }
-        
-        response = requests.post(f"{base_url}/booking", json=payload)
-
-        id = response.json()["bookingid"]
-
-        new_response = requests.delete(f"{base_url}/booking/{id}", headers={"Cookie": f"token={token}"})
+        new_response = requests.delete(f"{base_url}/booking/{existing_booking_id["id"]}", headers={"Cookie": f"token={token}"})
 
         assert new_response.status_code == 201
         assert new_response.text == "Created"
 
-        new_get = requests.get(f"{base_url}/booking/{id}")
+        new_get = requests.get(f"{base_url}/booking/{existing_booking_id["id"]}")
         
         assert new_get.status_code == 404
         assert new_get.text == "Not Found"
@@ -45,25 +28,10 @@ class TestBookingDelete:
             assert response.text == "Method Not Allowed"
 
     
-    def test_already_deleted_booking_ID(self, base_url, token):
-
-        payload = {
-            "firstname": "John",
-            "lastname": "Smith",
-            "totalprice": 150,
-            "depositpaid": True,
-            "bookingdates": {
-                "checkin": "2026-01-01",
-                "checkout": "2026-01-05"
-            },
-            "additionalneeds": "Breakfast"
-        }
-
-        response = requests.post(f"{base_url}/booking", json=payload)
-        id = response.json()["bookingid"]
+    def test_already_deleted_booking_ID(self, base_url, token, existing_booking_id):
 
         for i in range(2):
-            new_response = requests.delete(f"{base_url}/booking/{id}", headers={"Cookie": f"token={token}"})
+            new_response = requests.delete(f"{base_url}/booking/{existing_booking_id["id"]}", headers={"Cookie": f"token={token}"})
             if i == 0:
                 assert new_response.status_code == 201
                 assert new_response.text == "Created"
@@ -73,20 +41,6 @@ class TestBookingDelete:
 
     
     def test_malformed_id(self, base_url, token):
-
-        payload = {
-            "firstname": "John",
-            "lastname": "Smith",
-            "totalprice": 150,
-            "depositpaid": True,
-            "bookingdates": {
-                "checkin": "2026-01-01",
-                "checkout": "2026-01-05"
-            },
-            "additionalneeds": "Breakfast"
-        }
-
-        response = requests.post(f"{base_url}/booking", json=payload)
 
         lower_case = random.sample(list(string.ascii_lowercase), k=2)
         upper_case = random.sample(list(string.ascii_uppercase), k=3)
@@ -106,47 +60,16 @@ class TestBookingDelete:
         if new_response.status_code == 405:
             assert new_response.text == "Method Not Allowed"
 
-    def test_invalid_auth_token(self, base_url):
+    def test_invalid_auth_token(self, base_url, existing_booking_id):
 
-        payload = {
-            "firstname": "John",
-            "lastname": "Smith",
-            "totalprice": 150,
-            "depositpaid": True,
-            "bookingdates": {
-                "checkin": "2026-01-01",
-                "checkout": "2026-01-05"
-            },
-            "additionalneeds": "Breakfast"
-        }
-
-        response = requests.post(f"{base_url}/booking", json=payload)
-
-        id = response.json()["bookingid"]
-
-        new_response = requests.delete(f"{base_url}/booking/{id}", headers= {"Cookie": f"token=invalidtoken123"})
+        new_response = requests.delete(f"{base_url}/booking/{existing_booking_id["id"]}", headers= {"Cookie": f"token=invalidtoken123"})
 
         assert new_response.status_code == 403
         assert new_response.text == "Forbidden"
 
 
-    def test_no_cookie_auth_token(self, base_url):
+    def test_no_cookie_auth_token(self, base_url, existing_booking_id):
 
-        payload = {
-            "firstname": "John",
-            "lastname": "Smith",
-            "totalprice": 150,
-            "depositpaid": True,
-            "bookingdates": {
-                "checkin": "2026-01-01",
-                "checkout": "2026-01-05"
-            },
-            "additionalneeds": "Breakfast"
-        }
-
-        response = requests.post(f"{base_url}/booking", json=payload)
-        id = response.json()["bookingid"]
-
-        new_response = requests.delete(f"{base_url}/booking/{id}")
+        new_response = requests.delete(f"{base_url}/booking/{existing_booking_id["id"]}")
         assert new_response.status_code == 403
         assert new_response.text == "Forbidden"
