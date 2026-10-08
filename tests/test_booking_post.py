@@ -4,29 +4,17 @@ import random
 
 class TestBookingPost:
 
-    def test_post_method(self, base_url):
-        payload = {
-            "firstname": "Andres",
-            "lastname": "Reyes",
-            "totalprice": 10,
-            "depositpaid": True,
-            "bookingdates": {
-                "checkin": "2026-01-01",
-                "checkout": "2027-01-01"
-            },
-            "additionalneeds": "Breakfast"
-        }
-        response = requests.post(f"{base_url}/booking", json=payload)
-        assert response.status_code == 200
-        body = response.json()
+    def test_post_method(self, existing_booking_id):
 
-        assert body ["booking"]["firstname"] == "Andres"
-        assert body ["booking"]["lastname"] == "Reyes"
-        assert body ["booking"]["totalprice"] == 10
-        assert body ["booking"]["depositpaid"] == True
-        assert body ["booking"]["bookingdates"]["checkin"] == "2026-01-01"
-        assert body ["booking"]["bookingdates"]["checkout"] == "2027-01-01"
-        assert body ["booking"]["additionalneeds"] == "Breakfast"
+        payload = existing_booking_id["payload"]
+        body = existing_booking_id["body"]
+        assert body["booking"]["firstname"] == payload["firstname"]
+        assert body["booking"]["lastname"] == payload["lastname"]
+        assert body["booking"]["totalprice"] == payload["totalprice"]
+        assert body["booking"]["depositpaid"] is True
+        assert body["booking"]["bookingdates"]["checkin"] == payload["bookingdates"]["checkin"]
+        assert body["booking"]["bookingdates"]["checkout"] == payload["bookingdates"]["checkout"]
+        assert body["booking"]["additionalneeds"] == payload["additionalneeds"]
         assert "bookingid" in body
 
     def test_wrong_data_type(self, base_url):
