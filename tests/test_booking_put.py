@@ -147,7 +147,6 @@ class TestBookingPut:
 
 
     def test_empty_string_field(self, base_url, token, existing_booking_id):
-
         empty_response= existing_booking_id["payload"].copy()
 
         for key in empty_response:
@@ -155,10 +154,10 @@ class TestBookingPut:
             empty_response[key] = ""
             new_response = requests.put(f"{base_url}/booking/{existing_booking_id["id"]}", json=empty_response, headers={"Cookie": f"token={token}"})
 
-            if new_response.status_code != 200:
+            if key == "bookingdates":
                 assert new_response.status_code == 400
                 assert new_response.text == "Bad Request"
-
+                
             else:
                 known_bugs = {
                 "totalprice": None,
