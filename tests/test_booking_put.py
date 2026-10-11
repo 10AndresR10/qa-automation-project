@@ -48,27 +48,15 @@ class TestBookingPut:
         assert new_response.status_code == 500
         assert new_response.text == "Internal Server Error"
 
-    def test_non_existent_booking_ID(self, base_url, token):
+    def test_non_existent_booking_ID(self, base_url, token, existing_booking_id):
 
-        none_id = 99999999999
-
-        payload = {
-            "firstname": "John",
-            "lastname": "Smith",
-            "totalprice": 150,
-            "depositpaid": True,
-            "bookingdates": {
-                "checkin": "2026-01-01",
-                "checkout": "2026-01-05"
-            },
-            "additionalneeds": "Breakfast"
-        }
-
-        response = requests.put(f"{base_url}/booking/{none_id}", json= payload, headers= {"Cookie": f"token={token}"})
-        
-        assert response.status_code in [405, 403]
-        if response.status_code == 405:
-            assert response.text == "Method Not Allowed"
+        booking_id = existing_booking_id["id"]
+        new_response = requests.delete(f"{base_url}/booking/{booking_id}", headers={"Cookie": f"token={token}"})
+        assert new_response.status_code == 201
+        response = requests.put(f"{base_url}/booking/{booking_id}", json= existing_booking_id["payload"], headers= {"Cookie": f"token={token}"})
+        # Known API bug: a missing booking should return 404 Not Found, but the API returns 405
+        assert response.status_code == 405
+        assert response.text == "Method Not Allowed"
 
     def test_missing_required_field(self, base_url, token, existing_booking_id):
 
