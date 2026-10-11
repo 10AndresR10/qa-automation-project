@@ -18,14 +18,12 @@ class TestBookingDelete:
         assert new_get.text == "Not Found"
         
     
-    def test_non_existent_booking_ID(self, base_url, token):
+    def test_non_existent_booking_ID(self, base_url, token, non_existent_booking_id):
 
-        non_id = 9999
-
-        response = requests.delete(f"{base_url}/booking/{non_id}", headers={"Cookie": f"token={token}"})
-        assert response.status_code in [405, 403]
-        if response.status_code == 405:
-            assert response.text == "Method Not Allowed"
+        response = requests.delete(f"{base_url}/booking/{non_existent_booking_id}", headers={"Cookie": f"token={token}"})
+        # Known API bug: a missing booking should return 404 Not Found, but the API returns 405
+        assert response.status_code == 405
+        assert response.text == "Method Not Allowed"
 
     
     def test_already_deleted_booking_ID(self, base_url, token, existing_booking_id):
@@ -36,6 +34,7 @@ class TestBookingDelete:
                 assert new_response.status_code == 201
                 assert new_response.text == "Created"
             else:
+                # Known API bug: a missing booking should return 404 Not Found, but the API returns 405
                 assert new_response.status_code == 405
                 assert new_response.text == "Method Not Allowed"
 
@@ -56,9 +55,9 @@ class TestBookingDelete:
 
         new_response = requests.delete(f"{base_url}/booking/{new_id}", headers= {"Cookie": f"token={token}"})
 
-        assert new_response.status_code in [403, 405]
-        if new_response.status_code == 405:
-            assert new_response.text == "Method Not Allowed"
+        # Known API bug: a missing booking should return 404 Not Found, but the API returns 405
+        assert new_response.status_code == 405
+        assert new_response.text == "Method Not Allowed"
 
     def test_invalid_auth_token(self, base_url, existing_booking_id):
 

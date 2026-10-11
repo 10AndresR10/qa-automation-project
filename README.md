@@ -25,9 +25,7 @@ Portfolio project for API test automation in Python, built against the
   - Empty-string field(s) (asserts known API bugs: `totalprice` corrupted to `null`, `depositpaid` corrupted to `false`, instead of being rejected or stored as sent)
 - **DELETE /booking/{id}**
   - Happy path: authenticated delete of an existing booking, confirmed with a follow-up GET
-  - Non-existent booking ID
-  - Already-deleted booking ID (double delete)
-  - Malformed (alphanumeric) booking ID
+  - Non-existent booking ID, already-deleted booking ID (double delete), malformed (alphanumeric) booking ID (asserts known API bug: all return `405 Method Not Allowed` instead of `404 Not Found`)
   - Invalid/expired auth token
   - Missing `Cookie`/auth token
 

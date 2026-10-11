@@ -21,8 +21,8 @@ class TestBookingGet:
         assert response.status_code == 404
         assert "Not Found" in response.text
 
-    def test_get_non_existent_id(self, base_url):
-        response = requests.get(f"{base_url}/booking/9999")
+    def test_get_non_existent_id(self, base_url, non_existent_booking_id):
+        response = requests.get(f"{base_url}/booking/{non_existent_booking_id}")
         assert response.status_code == 404
         assert "Not Found" in response.text
 

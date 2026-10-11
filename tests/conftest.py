@@ -33,3 +33,10 @@ def existing_booking_id(base_url):
     assert response.status_code == 200
     body = response.json()
     return {"id": body["bookingid"], "payload": payload, "body": body}
+
+@pytest.fixture
+def non_existent_booking_id(base_url):
+    response = requests.get(f"{base_url}/booking")
+    assert response.status_code == 200
+    highest_id = max(booking["bookingid"] for booking in response.json())
+    return highest_id + 1000
