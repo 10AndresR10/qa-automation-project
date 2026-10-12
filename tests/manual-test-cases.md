@@ -104,6 +104,7 @@ Later the same day, the `firstname`/`lastname` boolean checks in `test_wrong_dat
 Creates a booking, authenticates, then fully updates all fields of the existing booking with valid data.
 Expected: 200, response body reflects all updated field values.
 Actual: 200 ✅ — all fields (`firstname`, `lastname`, `totalprice`, `depositpaid`, `bookingdates.checkin`, `bookingdates.checkout`, `additionalneeds`) are returned updated as sent.
+- ✅ **Test status: FIXED (2026-10-12).** `test_put_method` used to call `.json()` before checking the status code, so a non-200 response without a JSON body failed with a JSON decode error instead of the real problem. It now asserts the status first and shows the response body in the failure message. The update payload also used to keep `depositpaid`, `bookingdates` and `additionalneeds` the same as the original booking (`True`, `2026-01-01`/`2026-01-05`, `"Breakfast"`), so the test would still pass if the API ignored those fields. Every field now changes (`depositpaid: False`, `2026-02-01`/`2026-02-05`, `"Soccer"`), so the test shows that each field is actually updated.
 
 **Test 2: PUT request with wrong data type per field**
 (`firstname` as an int, `lastname` as a bool, `totalprice` as a string, `depositpaid` as an int, `checkin` as an int, `checkout` as a whitespace string, `additionalneeds` as a bool — auth token included.)
