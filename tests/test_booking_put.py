@@ -8,26 +8,25 @@ class TestBookingPut:
             "firstname": "Andres",
             "lastname": "Reyes",
             "totalprice": 100,
-            "depositpaid": True,
+            "depositpaid": False,
             "bookingdates": {
-                "checkin": "2026-01-01",
-                "checkout": "2026-01-05"
+                "checkin": "2026-02-01",
+                "checkout": "2026-02-05"
             },
-            "additionalneeds": "Breakfast"
+            "additionalneeds": "Soccer"
             }
 
         update_response = requests.put(f"{base_url}/booking/{existing_booking_id["id"]}", json=payload, headers={"Cookie": f"token={token}"})
-
+        assert update_response.status_code == 200, update_response.text
         body = update_response.json()
-            
-        assert update_response.status_code == 200
-        assert body ["firstname"] == "Andres"
-        assert body ["lastname"] == "Reyes"
-        assert body ["totalprice"] == 100
-        assert body ["depositpaid"] == True
-        assert body ["bookingdates"]["checkin"] == "2026-01-01"
-        assert body ["bookingdates"]["checkout"] == "2026-01-05"
-        assert body ["additionalneeds"] == "Breakfast"
+    
+        assert body["firstname"] == "Andres"
+        assert body["lastname"] == "Reyes"
+        assert body["totalprice"] == 100
+        assert body["depositpaid"] is False
+        assert body["bookingdates"]["checkin"] == "2026-02-01"
+        assert body["bookingdates"]["checkout"] == "2026-02-05"
+        assert body["additionalneeds"] == "Soccer"
             
             
     def test_put_wrong_data(self, base_url, token, existing_booking_id):
@@ -109,7 +108,6 @@ class TestBookingPut:
     def test_extremely_long_string_field(self, base_url, token, existing_booking_id):
 
         long_string_payload = existing_booking_id["payload"].copy()
-
         long_string = "Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres "
 
         for key in list(long_string_payload):
