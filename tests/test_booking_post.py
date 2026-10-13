@@ -126,7 +126,7 @@ class TestBookingPost:
                     assert new_response.status_code == 200
                     body = new_response.json()
                     stored_value = body["booking"][key]
-                    assert stored_value == bool(item), f"Expected {key} to coerce {item} to {bool({item})}, buy got {stored_value}"
+                    assert stored_value == bool(item), f"Expected {key} to coerce {item} to {bool(item)}, but got {stored_value}"
 
 
     def test_missing_required_field(self, base_url):
@@ -190,11 +190,11 @@ class TestBookingPost:
         payload = {
             "firstname": "",
             "lastname": "",
-            "totalprice": False,
-            "depositpaid": False,
+            "totalprice": "",
+            "depositpaid": "",
             "bookingdates": {
-                "checkin": "0NaN-aN-aN",
-                "checkout": "0NaN-aN-aN"
+                "checkin": "",
+                "checkout": ""
             },
             "additionalneeds": ""
         }
@@ -202,13 +202,14 @@ class TestBookingPost:
         response = requests.post(f"{base_url}/booking", json=payload)
         assert response.status_code == 200
         body = response.json()
+
         assert body["booking"]["firstname"] == ""
         assert body["booking"]["lastname"] == ""
         assert body["booking"]["totalprice"] is None
+        assert body["booking"]["depositpaid"] is False
         assert body["booking"]["bookingdates"]["checkin"] == "0NaN-aN-aN"
         assert body["booking"]["bookingdates"]["checkout"] == "0NaN-aN-aN"
         assert body["booking"]["additionalneeds"] == ""
-        
 
     def test_extremely_long_string(self, base_url):
 

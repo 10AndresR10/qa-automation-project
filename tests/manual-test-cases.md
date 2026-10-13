@@ -41,7 +41,7 @@ Actual for `firstname`/`lastname`: **500 Internal Server Error** ("Internal Serv
 
 Actual for `totalprice`:
 - A numeric string (e.g. `"543219"`) → **200**, silently coerced to the equivalent integer — reasonable type coercion, not a bug.
-- The boolean `True` or `False` → **200**, but the returned/stored `totalprice` comes back as **`None`** — 🐛 **Bug:** the same silent corruption as bug #4 (previously only confirmed via the empty-string test), now also confirmed for the wrong-data-type case. Unlike `firstname`/`lastname`, `totalprice` does not distinguish `True` from `False`: both are corrupted to `None` rather than one of them raising a 500. Confirmed by `test_wrong_data_type`.
+- The boolean `True` or `False` → **200**, but the returned/stored `totalprice` comes back as **`None`** — 🐛 **Bug:** the same silent corruption as bug #4, here for boolean input (the empty-string test covers `""`). Unlike `firstname`/`lastname`, `totalprice` does not distinguish `True` from `False`: both are corrupted to `None` rather than one of them raising a 500. Confirmed by `test_wrong_data_type`.
 
 Actual for `depositpaid`:
 - A truthy numeric string (e.g. `"543219"`) → **200**, coerced to boolean `True` — reasonable truthy-string coercion, not a bug.
@@ -68,11 +68,14 @@ Actual:
 - Omitting `additionalneeds` → **200** (field is optional, not required — original assumption was wrong to treat it as required)
 
 **Test 4: POST request with empty string field(s)**
-(`firstname`/`lastname`/`additionalneeds` as `""`, dates as `"0NaN-aN-aN"`, `totalprice`/`depositpaid` as `False`.)
+(Every field set to `""` in a single request: `firstname`, `lastname`, `totalprice`, `depositpaid`, `bookingdates.checkin`, `bookingdates.checkout`, `additionalneeds`.)
 Expected (assumed): 400 Bad Request
-Actual: **200** — the API accepts empty strings and malformed date strings with no validation, and silently corrupts the data instead of rejecting it:
-- 🐛 **Bug:** sending `totalprice: False` (a boolean) is accepted with a 200, but the returned/stored `totalprice` comes back as **`None`** — the value is silently dropped/corrupted rather than the request being rejected.
-- 🐛 **Bug:** the clearly-invalid date string `"0NaN-aN-aN"` is accepted verbatim for both `checkin` and `checkout` with no format validation.
+Actual: **200** — the API accepts empty strings with no validation, and silently corrupts the non-string fields instead of rejecting them:
+- `firstname`, `lastname`, `additionalneeds` → stored as `""`, as sent.
+- 🐛 **Bug:** `totalprice: ""` comes back as **`None`** — the value is silently dropped/corrupted rather than the request being rejected (bug #4).
+- 🐛 **Bug:** `depositpaid: ""` comes back coerced to boolean **`false`** instead of being stored as sent or rejected — the same corruption as PUT Test 6 (bug #13).
+- 🐛 **Bug:** `checkin: ""` and `checkout: ""` both come back corrupted to **`"0NaN-aN-aN"`** — the same coercion as bug #6, and the same result PUT gives for an empty nested date (PUT Test 7).
+- ✅ **Test status: FIXED (2026-10-12).** `test_empty_string_field` used to send `totalprice`/`depositpaid` as `False` and both dates as `"0NaN-aN-aN"`, so only 3 of the 7 fields were actually empty strings, and `depositpaid` was never asserted. Every field is now `""`, and all seven stored values are asserted. The old payload also showed that the API accepts the string `"0NaN-aN-aN"` verbatim as a date; that behavior is no longer covered by an automated test.
 
 **Test 5: POST request with an extremely long string in a field (e.g. "firstname")**
 (Tested with `firstname` at 288 chars, `lastname` at 299 chars, `additionalneeds` at 360 chars.)
@@ -134,7 +137,7 @@ The `bookingdates` case's copy/paste bug (setting top-level `checkin`/`checkout`
 Expected (assumed): 400 Bad Request for any field
 Actual:
 - `firstname`, `lastname`, `additionalneeds` → **200**, empty string accepted and stored as sent ✅ — consistent with POST's empty-string handling (see POST Test 4 and bug #4).
-- `totalprice` set to `""` → **200**, but the returned/stored `totalprice` comes back as **`null`** — 🐛 **Bug:** silently corrupted rather than stored as `""` or rejected, consistent with POST Test 4's `totalprice: False` → `None` corruption (bug #4).
+- `totalprice` set to `""` → **200**, but the returned/stored `totalprice` comes back as **`null`** — 🐛 **Bug:** silently corrupted rather than stored as `""` or rejected, consistent with POST Test 4's `totalprice: ""` → `None` corruption (bug #4).
 - `depositpaid` set to `""` → **200**, but the returned/stored `depositpaid` comes back as **`false`** — 🐛 **Bug:** an empty string is silently coerced to boolean `false` instead of being stored as sent or rejected.
 - `bookingdates` set to `""` (replacing the whole nested object with a string) → **400 Bad Request** ("Bad Request" body) — the only field actually rejected, since `bookingdates` must be an object, not a scalar.
 
@@ -166,7 +169,7 @@ PUT method test cases are complete — all planned cases (happy path, wrong data
 1. **Invalid input triggers 500s, not 400s — for mistyped fields.** A malformed field type (wrong data type) results in a raw `500 Internal Server Error` rather than a client-facing `400 Bad Request`, on both POST and PUT. A *missing* required field behaves inconsistently across methods — see bug #9.
 2. **Non-standard/invalid IDs on GET return 404, not 400.** Malformed IDs, whitespace IDs, and oversized IDs are all treated the same as "not found" — there is no separate bad-request path for unparseable IDs.
 3. **`additionalneeds` is optional**, not required — omitting it returns 200, unlike every other field.
-4. **Empty strings and malformed data are silently accepted (200)** instead of rejected, and in the case of `totalprice` sent as a boolean, the value is **corrupted to `None`** rather than validated or rejected. This is a data-integrity bug, not just a missing-validation issue. Confirmed via both the empty-string test (`totalprice: False`, see POST Test 4) and the wrong-data-type test (`totalprice: True`/`False`, see POST Test 2) — `totalprice` is corrupted to `None` for either boolean value, unlike `firstname`/`lastname`'s `True`-vs-`False` split (bug #14).
+4. **Empty strings and malformed data are silently accepted (200)** instead of rejected, and in the case of `totalprice` sent as an empty string or a boolean, the value is **corrupted to `None`** rather than validated or rejected. This is a data-integrity bug, not just a missing-validation issue. Confirmed via both the empty-string test (`totalprice: ""`, see POST Test 4, which also confirms `depositpaid: ""` → `false` and empty dates → `"0NaN-aN-aN"` on POST) and the wrong-data-type test (`totalprice: True`/`False`, see POST Test 2) — `totalprice` is corrupted to `None` for either boolean value, unlike `firstname`/`lastname`'s `True`-vs-`False` split (bug #14).
 5. **No length limit on string fields.** Fields up to 360 characters (`firstname`, `lastname`, `additionalneeds`) are accepted and returned as-is with a 200 — no server-side length validation.
 6. **Invalid calendar dates are silently coerced, not rejected.** An out-of-range date like `checkin: "2099-13-01"` (month 13) or `checkout: "1999-01-32"` (day 32) returns 200, and both values come back corrupted to `"0NaN-aN-aN"` rather than the request being rejected — consistent with bug #4.
 7. ~~**Still untested:** the valid-range half of Test 6 (checkout genuinely after checkin) has not been automated yet.~~ **Resolved:** the valid-range half of Test 6 is now automated in `test_equivalence_partitioning_valid_dates` (see Test 6b) — the API correctly returns the dates as sent for a well-formed, chronologically-ordered pair.
