@@ -13,7 +13,7 @@ Portfolio project for API test automation in Python, built against the
   - Happy path: valid payload creates a booking and returns the expected data
   - Wrong data type in each field (asserts known API bugs: `firstname`/`lastname` accept `false` but reject `true`, `totalprice` corrupted to `null` for booleans, no type check on `additionalneeds`, numeric date strings truncated to a four-digit year)
   - Missing required field (each field omitted in turn; `additionalneeds` is optional)
-  - Empty-string field(s) (asserts known API bug: `totalprice: false` corrupted to `null`)
+  - Empty-string field(s) (asserts known API bugs: `totalprice` corrupted to `null`, `depositpaid` corrupted to `false`, `checkin`/`checkout` corrupted to `"0NaN-aN-aN"`, instead of being rejected or stored as sent)
   - Extremely long string in the string fields
   - Equivalence partitioning on `checkin`/`checkout`: invalid calendar dates (corrupted to `"0NaN-aN-aN"`) and valid dates
 - **PUT /booking/{id}**
