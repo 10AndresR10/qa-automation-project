@@ -1,6 +1,5 @@
 import requests
 import random
-import pytest
 
 
 class TestBookingPost:
@@ -130,15 +129,7 @@ class TestBookingPost:
                     assert stored_value == bool(item), f"Expected {key} to coerce {item} to {bool(item)}, but got {stored_value}"
 
 
-    @pytest.mark.parametrize("key, expected_status_code", [
-        ("firstname", 500),
-        ("lastname", 500),
-        ("totalprice", 500),
-        ("depositpaid", 500),
-        ("bookingdates", 500),
-        ("additionalneeds", 200),
-    ])
-    def test_missing_required_field(self, base_url, key, expected_status_code):
+    def test_missing_required_field(self, base_url):
 
         payload = {
             "firstname": "Andres",
@@ -152,13 +143,48 @@ class TestBookingPost:
             "additionalneeds": "Breakfast"
         }
 
-        del payload[key]
-        response = requests.post(f"{base_url}/booking", json=payload)
-        assert response.status_code == expected_status_code, f"Expected {expected_status_code} with {key} missing, but got {response.status_code}"
+        for key in list(payload.keys()):
+            if key == "firstname":
+                modified_payload = payload.copy()
+                del modified_payload[key]
+                response = requests.post(f"{base_url}/booking", json=modified_payload)
+                assert response.status_code == 500
+                assert response.text == "Internal Server Error"
+            
+            elif key == "lastname":
+                modified_payload = payload.copy()
+                del modified_payload[key]
+                response = requests.post(f"{base_url}/booking", json=modified_payload)
+                assert response.status_code == 500
+                assert response.text == "Internal Server Error"
+            
+            elif key == "totalprice":
+                modified_payload = payload.copy()
+                del modified_payload[key]
+                response = requests.post(f"{base_url}/booking", json=modified_payload)
+                assert response.status_code == 500
+                assert response.text == "Internal Server Error"
 
-        if expected_status_code == 500:
-            assert response.text == "Internal Server Error"
-
+            elif key == "depositpaid":
+                modified_payload = payload.copy()
+                del modified_payload[key]
+                response = requests.post(f"{base_url}/booking", json=modified_payload)
+                assert response.status_code == 500
+                assert response.text == "Internal Server Error"
+            
+            elif key == "bookingdates":
+                modified_payload = payload.copy()
+                del modified_payload[key]
+                response = requests.post(f"{base_url}/booking", json=modified_payload)
+                assert response.status_code == 500
+                assert response.text == "Internal Server Error"
+            
+            elif key == "additionalneeds":
+                modified_payload = payload.copy()
+                del modified_payload[key]
+                response = requests.post(f"{base_url}/booking", json=modified_payload)
+                assert response.status_code == 200
+            
     def test_empty_string_field(self, base_url):
 
         payload = {
