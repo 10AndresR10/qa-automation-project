@@ -1,5 +1,4 @@
 import requests
-import random
 import pytest
 
 
@@ -32,12 +31,8 @@ class TestBookingPost:
             "additionalneeds": "Breakfast"
         }
 
-        new_digit = ""
-        for i in range(6):
-            digit = str(random.randint(1,9))
-            new_digit += digit
-        new_value = int(new_digit)
-
+        new_value = 123456
+        new_digit = str(new_value)
         new_payload = payload.copy()
 
         for key in new_payload:
@@ -67,15 +62,15 @@ class TestBookingPost:
                 response = requests.post(f"{base_url}/booking", json= new_payload)
                 assert response.status_code == 200
 
-                for i in [True, False]:
+                for boolean in [True, False]:
                     new_payload = payload.copy()
-                    new_payload[key] = i
+                    new_payload[key] = boolean
                     new_response = requests.post(f"{base_url}/booking", json=new_payload)
                     assert new_response.status_code == 200
                     body = new_response.json()
                     stored_value = body["booking"]["totalprice"]
-                    assert stored_value is None, f"Expected totalprice to be corrupted to null for input {i}, but got {stored_value}"
-           
+                    assert stored_value is None, f"Expected totalprice to be corrupted to null for input {boolean}, but got {stored_value}"
+        
             elif key == "depositpaid":
                 new_payload = payload.copy()
                 new_payload[key] = new_digit
@@ -90,29 +85,31 @@ class TestBookingPost:
                 response = requests.post(f"{base_url}/booking", json=new_payload)
                 assert response.status_code == 200
 
-                for i in range(0, 2):
+                for number in range(0, 2):
                     new_payload = payload.copy()
-                    new_payload[key] = i
+                    new_payload[key] = number
                     new_response = requests.post(f"{base_url}/booking", json=new_payload)
                     assert new_response.status_code == 200
                     body = new_response.json()
                     stored_value = body["booking"]["depositpaid"]
-                    assert stored_value == bool(i), f"Expected depositpaid to coerce {i} to {bool((i))}, but got {stored_value}"
+                    assert stored_value == bool(number), f"Expected depositpaid to coerce {number} to {bool(number)}, but got {stored_value}"
 
-            elif key == "bookingdates":                
-                for item in new_payload[key]:
-                    new_payload = payload.copy()
-                    new_payload[key] = payload[key].copy()
-                    new_payload[key][item] = new_digit
-                    response = requests.post(f"{base_url}/booking", json=new_payload)
-                    assert response.status_code == 200
-                    body = response.json()
-                    stored_value = body["booking"]["bookingdates"][item]
-                    if int(new_digit) > 275760: 
-                        assert "0NaN-aN-aN" in stored_value, f"Expected {item} to be corrupted to a NaN-containing string for input '{new_digit}', but got {stored_value}"
-                    elif int(new_digit) <= 275760:
-                        expected_year = new_digit[-4:]
-                        assert stored_value.startswith(expected_year), f"Expected {item} to be truncated to year '{expected_year}' from input '{new_digit}', but got '{stored_value}'"
+            elif key == "bookingdates":
+                year_numbers = [275759, 275760, 275761]
+                for item in payload[key]:
+                    for year in year_numbers:
+                        new_payload = payload.copy()
+                        new_payload[key] = payload[key].copy()
+                        new_payload[key][item] = str(year)
+                        response = requests.post(f"{base_url}/booking", json=new_payload)
+                        assert response.status_code == 200
+                        body = response.json()
+                        stored_value = body["booking"]["bookingdates"][item]
+                        if year > 275760: 
+                            assert "0NaN-aN-aN" in stored_value, f"Expected {item} to be corrupted to a NaN-containing string for input '{year}', but got {stored_value}"
+                        elif year <= 275760:
+                            expected_year = str(year)[-4:]
+                            assert stored_value.startswith(expected_year), f"Expected {item} to be truncated to year '{expected_year}' from input '{year}', but got '{stored_value}'"
 
             elif key == "additionalneeds":
                 new_payload = payload.copy()
@@ -120,14 +117,14 @@ class TestBookingPost:
                 response = requests.post(f"{base_url}/booking", json=new_payload)
                 assert response.status_code == 200
                 
-                for item in [True, False]:
+                for bool_item in [True, False]:
                     new_payload = payload.copy()
-                    new_payload[key] = item
+                    new_payload[key] = bool_item
                     new_response = requests.post(f"{base_url}/booking", json=new_payload)
                     assert new_response.status_code == 200
                     body = new_response.json()
                     stored_value = body["booking"][key]
-                    assert stored_value == bool(item), f"Expected {key} to coerce {item} to {bool(item)}, but got {stored_value}"
+                    assert stored_value == bool_item, f"Expected {key} to coerce {bool_item} to {bool_item}, but got {stored_value}"
 
 
     @pytest.mark.parametrize("key, expected_status_code", [
