@@ -21,7 +21,7 @@ Portfolio project for API test automation in Python, built against the
   - Happy path: authenticated update of all fields on an existing booking
   - Wrong data types in the payload
   - Non-existent booking ID (asserts known API bug: returns `405 Method Not Allowed` instead of `404 Not Found`)
-  - Missing required field (each field omitted in turn)
+  - Missing required field (each field omitted in turn; asserts `400 Bad Request` for required fields, `200` for the optional `additionalneeds`)
   - Extremely long string in a field
   - Empty-string field(s) (asserts known API bugs: `totalprice` corrupted to `null`, `depositpaid` corrupted to `false`, instead of being rejected or stored as sent)
 - **DELETE /booking/{id}**
@@ -35,7 +35,7 @@ test case list written before implementation.
 
 ## Tech stack
 
-- Python 3
+- Python 3 (f-strings avoid nested double quotes, so the tests don't need 3.12+)
 - `requests` — HTTP calls
 - `pytest` — test runner and assertions
 - `pytest-html` — HTML test reports

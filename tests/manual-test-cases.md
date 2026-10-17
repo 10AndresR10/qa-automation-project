@@ -115,7 +115,7 @@ Expected (assumed): 400 Bad Request
 Actual: **500 Internal Server Error** ("Internal Server Error" body) — consistent with POST's handling of mistyped fields (see POST Test 2).
 
 **Test 3: PUT request against a non-existent booking ID**
-(Tested with a 11-digit numeric ID, `99999999999`, valid auth token included.)
+(Created a valid booking, deleted it, then sent a full update payload to the now-deleted ID, valid auth token included. Originally tested with a hard-coded 11-digit ID, `99999999999`; a booking that is known to be gone is more reliable than guessing an ID that doesn't exist.)
 Expected (assumed): 404 Not Found
 Actual: **405 Method Not Allowed** ("Method Not Allowed" body) — unlike GET (see GET Test 3), a non-existent ID on PUT is not treated as "not found"; it's rejected before the ID is even looked up.
 
@@ -125,6 +125,8 @@ Expected (assumed): 400 Bad Request for any omitted field
 Actual:
 - Omitting `firstname`, `lastname`, `depositpaid`, `totalprice`, or `bookingdates` → **400 Bad Request** ("Bad Request" body) ✅ — but note this is **inconsistent with POST's** handling of the same condition, which returns 500 (see POST Test 3 and bug #1); PUT validates a missing required field before hitting the server error POST triggers.
 - Omitting `additionalneeds` → **200** — consistent with PUT Test 1/POST Test 3: `additionalneeds` is optional, not required (see bug #3).
+  - 🐛 **Bug:** the response still contains the booking's old value (`"additionalneeds": "Breakfast"`). PUT is supposed to replace the whole booking, so an omitted optional field should be cleared, not kept (see bug #17). Found by a direct request on 2026-10-17; not asserted by an automated test yet.
+- ✅ **Test status: REFACTORED (2026-10-17).** `test_missing_required_field` used to loop over the fields with six near-identical `if key == ...` blocks, so the first failing field stopped the test and hid the rest. It is now parametrized like the POST version: each omitted field runs as its own case (`[firstname-400]` … `[additionalneeds-200]`). Every case asserts the status code, and the `400` cases also assert the `"Bad Request"` body. The body check is chosen from the expected status, not the actual response, so an unexpected `400` for `additionalneeds` fails the test instead of passing.
 
 **Test 5: PUT request with an extremely long string in a field**
 (Created a valid booking, then sent a full update payload with each field in turn replaced by a 91-char string, valid auth token included — including `totalprice` and `depositpaid`, which are normally numeric/boolean.)
@@ -182,6 +184,7 @@ PUT method test cases are complete — all planned cases (happy path, wrong data
 14. **POST treats the wrong-type boolean `False` differently from `True` on string fields.** Sending `firstname`/`lastname: True` returns 500 (consistent with bug #1), but sending `False` for the same field is silently accepted with 200 and stored as the literal `false` — the falsy value slips past whatever check produces the 500 for other wrong types. Confirmed by `test_wrong_data_type`, which asserts both halves of the split, including the stored `false` (see POST Test 2). Re-confirmed on 2026-09-30 by sending the requests directly. Possible cause (not yet tested): the server may only validate a field when its value is truthy. Sending other falsy values for `firstname`, such as `0`, `""` or `null`, would confirm or rule this out.
 15. **`additionalneeds` has no type validation.** On POST, an integer or boolean `additionalneeds` is accepted with 200 and stored with its wrong type (`543219`, `true`, `false`) — no rejection and no conversion to a string, unlike the other string fields `firstname`/`lastname`, which return 500 for the same inputs (bug #1, bug #14). Confirmed by `test_wrong_data_type` (see POST Test 2).
 16. **Numeric strings in `bookingdates` are parsed as years and silently truncated.** On POST, a numeric string such as `"193735"` for `checkin`/`checkout` is accepted with 200 and stored as `"3735-01-01"` — the API treats it as year 193735 and keeps only the last four digits. Values above `275760` (the JavaScript `Date` year limit) fall back to `"0NaN-aN-aN"` (bug #6). The truncated result looks like a valid date, which makes this worse than the `NaN` case: the corruption is hard to spot. Found when `test_wrong_data_type` failed intermittently (see POST Test 2). Re-confirmed on 2026-09-28 by sending the requests directly: still present.
+17. **PUT keeps an omitted optional field's old value.** Sending a PUT without `additionalneeds` returns 200, and the booking keeps its previous `additionalneeds` (e.g. `"Breakfast"`) instead of clearing it. PUT should replace the whole resource, so here it behaves more like a partial update (PATCH). Found by a direct request on 2026-10-17 (see PUT Test 4); not yet covered by an automated assertion.
 
 ---
 
@@ -193,7 +196,7 @@ Expected: 201 on delete, 404 on the follow-up GET.
 Actual: 201 ✅ ("Created" body) on delete, 404 ✅ ("Not Found" body) on the follow-up GET — the booking is genuinely removed, not just marked deleted.
 
 **Test 2: DELETE request against a non-existent booking ID**
-(Tested with ID `9999`, valid auth token included.)
+(Tested with the `non_existent_booking_id` fixture from `conftest.py`: the highest existing booking ID + 1000, valid auth token included. Originally tested with a hard-coded ID, `9999`, which could exist on the shared public API.)
 Expected (assumed): 404 Not Found
 Actual: **405 Method Not Allowed** ("Method Not Allowed" body) — consistent with PUT's handling of the same condition (see PUT Test 3 and bug #8); DELETE against a well-formed but non-existent ID is rejected the same way PUT is, not treated as "not found" the way GET is.
 
@@ -239,3 +242,22 @@ All four test files now take the shared `base_url` fixture from `conftest.py` in
 - Every result matches the Actual values documented above. No API behavior has changed since the last run.
 - `test_wrong_data_type` (POST) is no longer flaky: both date partitions are now asserted (see POST Test 2).
 - `test_already_deleted_booking_ID` (DELETE) is intermittent: 1 failure in 10 runs, on the response body only (see DELETE Test 3).
+
+---
+
+# Full Test Suite Run — 2026-10-17
+
+Changes since the last run:
+- POST and PUT `test_missing_required_field` are parametrized, so each omitted field is reported as its own test. That is why the count is higher than before: no test cases were added or removed.
+- The f-strings in the GET, PUT and DELETE tests use single quotes inside (`existing_booking_id['id']`). Nested double quotes in f-strings are a syntax error before Python 3.12.
+
+| File | Tests | Result |
+|---|---|---|
+| `test_booking_get.py` | 5 | 5 passed ✅ |
+| `test_booking_post.py` | 12 | 12 passed ✅ |
+| `test_booking_put.py` | 14 | 14 passed ✅ |
+| `test_booking_delete.py` | 6 | 6 passed ✅ |
+| **Total** | **37** | **37 passed ✅** |
+
+- Every result matches the Actual values documented above.
+- On 2026-10-16, the old (loop) PUT `test_missing_required_field` failed once in a full run and passed on re-run. It made 6 requests in a row to the public API, so this was most likely a slow or unstable response, not a change in behavior.

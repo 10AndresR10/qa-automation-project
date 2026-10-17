@@ -78,7 +78,7 @@ api-test-automation/
   explain errors — practice describing bugs in English when asking for help
 
 ## Next steps
-- [ ] Open this plan in Claude Code
-- [ ] Set up the project folder structure
-- [ ] Write manual test cases (Milestone 1)
-- [ ] Start coding first test file
+- [x] Open this plan in Claude Code
+- [x] Set up the project folder structure
+- [x] Write manual test cases (Milestone 1)
+- [x] Start coding first test file
