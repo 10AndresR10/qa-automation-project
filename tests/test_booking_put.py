@@ -16,7 +16,7 @@ class TestBookingPut:
             "additionalneeds": "Soccer"
             }
 
-        update_response = requests.put(f"{base_url}/booking/{existing_booking_id["id"]}", json=payload, headers={"Cookie": f"token={token}"})
+        update_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json=payload, headers={"Cookie": f"token={token}"})
         assert update_response.status_code == 200, update_response.text
         body = update_response.json()
     
@@ -43,7 +43,7 @@ class TestBookingPut:
             "additionalneeds": False
             }
 
-        new_response = requests.put(f"{base_url}/booking/{existing_booking_id["id"]}", json= payload, headers={"Cookie": f"token={token}"})
+        new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json= payload, headers={"Cookie": f"token={token}"})
         assert new_response.status_code == 500
         assert new_response.text == "Internal Server Error"
 
@@ -66,42 +66,42 @@ class TestBookingPut:
             if key == "firstname":
                 wrong_payload = existing_booking_id["payload"].copy()
                 del wrong_payload[key]
-                new_response = requests.put(f"{base_url}/booking/{existing_booking_id["id"]}", json= wrong_payload, headers={"Cookie":f"token={token}"})
+                new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json= wrong_payload, headers={"Cookie":f"token={token}"})
                 assert new_response.status_code == 400 
                 assert new_response.text == "Bad Request"
 
             if key == "lastname":
                 wrong_payload = existing_booking_id["payload"].copy()
                 del wrong_payload[key]
-                new_response = requests.put(f"{base_url}/booking/{existing_booking_id["id"]}", json= wrong_payload, headers={"Cookie":f"token={token}"})
+                new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json= wrong_payload, headers={"Cookie":f"token={token}"})
                 assert new_response.status_code == 400 
                 assert new_response.text == "Bad Request"
             
             if key == "depositpaid":
                 wrong_payload = existing_booking_id["payload"].copy()
                 del wrong_payload[key]
-                new_response = requests.put(f"{base_url}/booking/{existing_booking_id["id"]}", json= wrong_payload, headers={"Cookie":f"token={token}"})
+                new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json= wrong_payload, headers={"Cookie":f"token={token}"})
                 assert new_response.status_code == 400 
                 assert new_response.text == "Bad Request"
             
             if key == "totalprice":
                 wrong_payload = existing_booking_id["payload"].copy()
                 del wrong_payload[key]
-                new_response = requests.put(f"{base_url}/booking/{existing_booking_id["id"]}", json= wrong_payload, headers={"Cookie":f"token={token}"})
+                new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json= wrong_payload, headers={"Cookie":f"token={token}"})
                 assert new_response.status_code == 400 
                 assert new_response.text == "Bad Request"
             
             if key == "bookingdates":
                 wrong_payload = existing_booking_id["payload"].copy()
                 del wrong_payload[key]
-                new_response = requests.put(f"{base_url}/booking/{existing_booking_id["id"]}", json= wrong_payload, headers={"Cookie":f"token={token}"})
+                new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json= wrong_payload, headers={"Cookie":f"token={token}"})
                 assert new_response.status_code == 400 
                 assert new_response.text == "Bad Request"
 
             if key == "additionalneeds":
                 wrong_payload = existing_booking_id["payload"].copy()
                 del wrong_payload[key]
-                new_response = requests.put(f"{base_url}/booking/{existing_booking_id["id"]}", json= wrong_payload, headers={"Cookie":f"token={token}"})
+                new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json= wrong_payload, headers={"Cookie":f"token={token}"})
                 assert new_response.status_code == 200
             
 
@@ -122,7 +122,7 @@ class TestBookingPut:
             else:
                 long_string_payload[key] = long_string
 
-            new_response = requests.put(f"{base_url}/booking/{existing_booking_id["id"]}", json= long_string_payload, headers={"Cookie": f"token={token}"})
+            new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json= long_string_payload, headers={"Cookie": f"token={token}"})
 
             assert new_response.status_code == 200
 
@@ -138,7 +138,7 @@ class TestBookingPut:
         for key in empty_response:
             empty_response = existing_booking_id["payload"].copy()
             empty_response[key] = ""
-            new_response = requests.put(f"{base_url}/booking/{existing_booking_id["id"]}", json=empty_response, headers={"Cookie": f"token={token}"})
+            new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json=empty_response, headers={"Cookie": f"token={token}"})
 
             if key == "bookingdates":
                 assert new_response.status_code == 400
@@ -167,7 +167,7 @@ class TestBookingPut:
             update_payload["bookingdates"] = existing_booking_id["payload"]["bookingdates"].copy()
             update_payload["bookingdates"][date_key] = ""
 
-            new_response = requests.put(f"{base_url}/booking/{existing_booking_id["id"]}", json=update_payload, headers={"Cookie": f"token={token}"})
+            new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json=update_payload, headers={"Cookie": f"token={token}"})
 
             assert new_response.status_code == 200
             assert new_response.json()["bookingdates"][date_key] == "0NaN-aN-aN"
@@ -178,7 +178,7 @@ class TestBookingPut:
         update_payload = existing_booking_id["payload"].copy()
         update_payload["firstname"] = "Andres"
 
-        put_response = requests.put(f"{base_url}/booking/{existing_booking_id["id"]}", json=update_payload)
+        put_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json=update_payload)
         assert put_response.status_code == 403
         assert put_response.text == "Forbidden"
 
@@ -188,7 +188,7 @@ class TestBookingPut:
 
         update_payload["firstname"] = "Andres"
 
-        new_response = requests.put(f"{base_url}/booking/{existing_booking_id["id"]}", json=update_payload, headers={"Cookie": "token=invalidtoken123"})
+        new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json=update_payload, headers={"Cookie": "token=invalidtoken123"})
 
         assert new_response.status_code == 403
         assert new_response.text == "Forbidden"
