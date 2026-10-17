@@ -1,4 +1,5 @@
 import requests
+import pytest
 
 class TestBookingPut:
 
@@ -57,53 +58,24 @@ class TestBookingPut:
         assert response.status_code == 405
         assert response.text == "Method Not Allowed"
 
-    def test_missing_required_field(self, base_url, token, existing_booking_id):
+    @pytest.mark.parametrize("key, expected_status_code", [
+        ("firstname", 400),
+        ("lastname", 400),
+        ("totalprice", 400),
+        ("depositpaid", 400),
+        ("bookingdates", 400),
+        ("additionalneeds", 200),
+    ])
+    def test_missing_required_field(self, base_url, token, existing_booking_id, key, expected_status_code):
 
-        wrong_payload = existing_booking_id["payload"].copy()      
+        wrong_payload = existing_booking_id["payload"].copy()
 
-        for key in list(wrong_payload):
+        del wrong_payload[key]
+        response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json=wrong_payload, headers= {"Cookie": f"token={token}"})
+        assert response.status_code == expected_status_code, f"Expected {expected_status_code} with {key} missing, but got {response.status_code}"
 
-            if key == "firstname":
-                wrong_payload = existing_booking_id["payload"].copy()
-                del wrong_payload[key]
-                new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json= wrong_payload, headers={"Cookie":f"token={token}"})
-                assert new_response.status_code == 400 
-                assert new_response.text == "Bad Request"
-
-            if key == "lastname":
-                wrong_payload = existing_booking_id["payload"].copy()
-                del wrong_payload[key]
-                new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json= wrong_payload, headers={"Cookie":f"token={token}"})
-                assert new_response.status_code == 400 
-                assert new_response.text == "Bad Request"
-            
-            if key == "depositpaid":
-                wrong_payload = existing_booking_id["payload"].copy()
-                del wrong_payload[key]
-                new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json= wrong_payload, headers={"Cookie":f"token={token}"})
-                assert new_response.status_code == 400 
-                assert new_response.text == "Bad Request"
-            
-            if key == "totalprice":
-                wrong_payload = existing_booking_id["payload"].copy()
-                del wrong_payload[key]
-                new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json= wrong_payload, headers={"Cookie":f"token={token}"})
-                assert new_response.status_code == 400 
-                assert new_response.text == "Bad Request"
-            
-            if key == "bookingdates":
-                wrong_payload = existing_booking_id["payload"].copy()
-                del wrong_payload[key]
-                new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json= wrong_payload, headers={"Cookie":f"token={token}"})
-                assert new_response.status_code == 400 
-                assert new_response.text == "Bad Request"
-
-            if key == "additionalneeds":
-                wrong_payload = existing_booking_id["payload"].copy()
-                del wrong_payload[key]
-                new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json= wrong_payload, headers={"Cookie":f"token={token}"})
-                assert new_response.status_code == 200
-            
+        if expected_status_code == 400:
+            assert response.text == "Bad Request"
 
     def test_extremely_long_string_field(self, base_url, token, existing_booking_id):
 
