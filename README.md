@@ -7,7 +7,7 @@ Portfolio project for API test automation in Python, built against the
 ## What's tested
 
 - **GET /booking/{id}**
-  - Happy path: valid booking ID returns 200 with the expected fields
+  - Happy path: valid booking ID returns 200 with all booking fields, including the optional `additionalneeds`
   - Malformed ID, non-existent ID, whitespace ID, extremely large ID
 - **POST /booking**
   - Happy path: valid payload creates a booking and returns the expected data
