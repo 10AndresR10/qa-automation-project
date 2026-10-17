@@ -15,6 +15,7 @@ class TestBookingGet:
         assert "bookingdates" in body
         assert "checkin" in body["bookingdates"]
         assert "checkout" in body["bookingdates"]
+        assert "additionalneeds" in body
 
     def test_get_malformed_id(self, base_url):
         response = requests.get(f"{base_url}/booking/abc")
