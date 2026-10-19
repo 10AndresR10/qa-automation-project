@@ -103,32 +103,29 @@ class TestBookingPut:
                 assert body["bookingdates"]["checkin"] == "0NaN-aN-aN"
                 assert body["bookingdates"]["checkout"] == "0NaN-aN-aN"
 
+    @pytest.mark.parametrize("key, expected_status_code, expected_value", [
+        ("firstname", 200, ""),
+        ("lastname", 200, ""),
+        # Known API bug: an empty string should be rejected or stored as sent, but totalprice is corrupted to null
+        ("totalprice", 200, None),
+        # Known API bug: an empty string should be rejected or stored as sent, but depositpaid is corrupted to false
+        ("depositpaid", 200, False),
+        # expected_value is not checked for 400 responses
+        ("bookingdates", 400, None),
+        ("additionalneeds", 200, "")
+    ])
+    def test_empty_string_field(self, base_url, token, existing_booking_id, key, expected_status_code, expected_value):
 
-    def test_empty_string_field(self, base_url, token, existing_booking_id):
-        empty_response= existing_booking_id["payload"].copy()
+        empty_request = existing_booking_id["payload"].copy()
+        empty_request[key] = ""
+        new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json=empty_request, headers={"Cookie": f"token={token}"})
+        assert new_response.status_code == expected_status_code
 
-        for key in empty_response:
-            empty_response = existing_booking_id["payload"].copy()
-            empty_response[key] = ""
-            new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json=empty_response, headers={"Cookie": f"token={token}"})
-
-            if key == "bookingdates":
-                assert new_response.status_code == 400
-                assert new_response.text == "Bad Request"
-                
-            else:
-                known_bugs = {
-                "totalprice": None,
-                "depositpaid": False,
-                }
-                assert new_response.status_code == 200
-                actual = new_response.json()[key]
-
-                if key in known_bugs:
-                    assert actual == known_bugs[key], f"{key}: expected known bug value {known_bugs[key]!r}, got {actual!r}"
-
-                else:
-                    assert actual == ""
+        if expected_status_code == 400:
+            assert new_response.text == "Bad Request"   
+        else:
+            actual = new_response.json()[key]
+            assert actual == expected_value, f"{key}: expected {expected_value!r}, got {actual!r}"
 
 
     def test_empty_string_nested_bookingdates_field(self, base_url, token, existing_booking_id):

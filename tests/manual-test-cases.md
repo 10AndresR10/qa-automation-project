@@ -143,7 +143,8 @@ Actual:
 - `depositpaid` set to `""` → **200**, but the returned/stored `depositpaid` comes back as **`false`** — 🐛 **Bug:** an empty string is silently coerced to boolean `false` instead of being stored as sent or rejected.
 - `bookingdates` set to `""` (replacing the whole nested object with a string) → **400 Bad Request** ("Bad Request" body) — the only field actually rejected, since `bookingdates` must be an object, not a scalar.
 
-The automated version of this test (`test_empty_string_field`) no longer uses `xfail`: it now asserts the two known-bug values directly (`totalprice` → `None`, `depositpaid` → `False`) against a `known_bugs` map, so the full field list runs and the test passes every time — both corruptions are confirmed by the automated assertions, not a manual/ad-hoc script. The extraneous top-level `checkin`/`checkout` assignment (dead code left over from the original copy/paste bug) has been removed; this test still only covers replacing the whole `bookingdates` object with `""`, which correctly gets 400 — the nested-field case is now covered separately by Test 7 below.
+The automated version of this test (`test_empty_string_field`) no longer uses `xfail`: it asserts the two known-bug values directly (`totalprice` → `None`, `depositpaid` → `False`), so both corruptions are confirmed by the automated assertions, not a manual/ad-hoc script. The extraneous top-level `checkin`/`checkout` assignment (dead code left over from the original copy/paste bug) has been removed; this test still only covers replacing the whole `bookingdates` object with `""`, which correctly gets 400 — the nested-field case is now covered separately by Test 7 below.
+- ✅ **Test status: REFACTORED (2026-10-18).** `test_empty_string_field` used to loop over the fields and look up the bug values in a `known_bugs` map, so the first failing field stopped the test and hid the rest. It is now parametrized like Test 4: each field runs as its own case (`[firstname-200-]` … `[additionalneeds-200-]`), and each row holds its expected status and stored value. The `totalprice` and `depositpaid` rows have `# Known API bug` comments in place of the map. Every `200` case compares the stored value from the response with the row's expected value, and the `400` case (`bookingdates`) asserts the `"Bad Request"` body.
 
 **Test 7: PUT request with nested `bookingdates.checkin`/`checkout` set to an empty string**
 (Created a valid booking, then sent a full update payload with `bookingdates.checkin` set to `""` — leaving `checkout` valid — then repeated with `bookingdates.checkout` set to `""` — leaving `checkin` valid, valid auth token included both times.)
@@ -261,3 +262,20 @@ Changes since the last run:
 
 - Every result matches the Actual values documented above.
 - On 2026-10-16, the old (loop) PUT `test_missing_required_field` failed once in a full run and passed on re-run. It made 6 requests in a row to the public API, so this was most likely a slow or unstable response, not a change in behavior.
+
+---
+
+# Full Test Suite Run — 2026-10-18
+
+Changes since the last run:
+- PUT `test_empty_string_field` is parametrized, so each field is reported as its own test (see PUT Test 6). That is why the count is higher than before: no test cases were added or removed.
+
+| File | Tests | Result |
+|---|---|---|
+| `test_booking_get.py` | 5 | 5 passed ✅ |
+| `test_booking_post.py` | 12 | 12 passed ✅ |
+| `test_booking_put.py` | 19 | 19 passed ✅ |
+| `test_booking_delete.py` | 6 | 6 passed ✅ |
+| **Total** | **42** | **42 passed ✅** |
+
+- Every result matches the Actual values documented above.

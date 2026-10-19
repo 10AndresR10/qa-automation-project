@@ -23,7 +23,7 @@ Portfolio project for API test automation in Python, built against the
   - Non-existent booking ID (asserts known API bug: returns `405 Method Not Allowed` instead of `404 Not Found`)
   - Missing required field (each field omitted in turn; asserts `400 Bad Request` for required fields, `200` for the optional `additionalneeds`)
   - Extremely long string in a field
-  - Empty-string field(s) (asserts known API bugs: `totalprice` corrupted to `null`, `depositpaid` corrupted to `false`, instead of being rejected or stored as sent)
+  - Empty-string field (each field set to `""` in turn; asserts `400 Bad Request` for `bookingdates`, and for the other fields the stored value, including known API bugs: `totalprice` corrupted to `null`, `depositpaid` corrupted to `false`, instead of being rejected or stored as sent)
 - **DELETE /booking/{id}**
   - Happy path: authenticated delete of an existing booking, confirmed with a follow-up GET
   - Non-existent booking ID, already-deleted booking ID (double delete), malformed (alphanumeric) booking ID (asserts known API bug: all return `405 Method Not Allowed` instead of `404 Not Found`)
