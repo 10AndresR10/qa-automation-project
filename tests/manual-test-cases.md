@@ -129,10 +129,14 @@ Actual:
 - ✅ **Test status: REFACTORED (2026-10-17).** `test_missing_required_field` used to loop over the fields with six near-identical `if key == ...` blocks, so the first failing field stopped the test and hid the rest. It is now parametrized like the POST version: each omitted field runs as its own case (`[firstname-400]` … `[additionalneeds-200]`). Every case asserts the status code, and the `400` cases also assert the `"Bad Request"` body. The body check is chosen from the expected status, not the actual response, so an unexpected `400` for `additionalneeds` fails the test instead of passing.
 
 **Test 5: PUT request with an extremely long string in a field**
-(Created a valid booking, then sent a full update payload with each field in turn replaced by a 91-char string, valid auth token included — including `totalprice` and `depositpaid`, which are normally numeric/boolean.)
+(Created a valid booking, then sent a full update payload with each field in turn replaced by a 1,100-char string (`"Andres12324" * 100`), valid auth token included — including `totalprice` and `depositpaid`, which are normally numeric/boolean.)
 Expected (assumed): 400 Bad Request, per API documentation
 Actual: **200** for every field, including `totalprice`/`depositpaid` set to a long string — consistent with POST's long-string handling (see POST Test 5) and, for the type mismatch on `totalprice`/`depositpaid`, notably *not* the 500 seen in PUT Test 2's wrong-data-type test; a single mistyped field alongside otherwise-valid data doesn't trigger the same server error as changing every field's type at once.
-The `bookingdates` case's copy/paste bug (setting top-level `checkin`/`checkout` keys instead of the nested ones) is fixed — the nested `bookingdates` object is now genuinely replaced with a long string for both `checkin` and `checkout`. Actual: **200**, and both nested date values come back corrupted to **`"0NaN-aN-aN"`** — the same coercion as bug #6 (invalid calendar dates), not a distinct behavior. Confirmed by an assertion in `test_extremely_long_string_field`.
+- `firstname`, `lastname`, `additionalneeds` → stored and returned as sent, with no truncation.
+- `totalprice` set to a long string → the stored `totalprice` comes back as **`null`** — 🐛 **Bug:** silently corrupted, the same as the empty-string case (see Test 6 and bug #4).
+- `depositpaid` set to a long string → the stored `depositpaid` comes back as **`true`** — 🐛 **Bug:** the non-empty string is coerced to boolean `true`, the opposite of the empty-string case, which becomes `false` (see Test 6). The fixture already stores `depositpaid: true`, so the automated test alone can't tell this conversion apart from the API keeping the old value. A direct request on 2026-10-19 stored `false` first and still got `true` back, which confirms the conversion.
+- `bookingdates` (both nested dates set to a long string) → both dates come back corrupted to **`"0NaN-aN-aN"`** — the same coercion as bug #6 (invalid calendar dates), not a distinct behavior.
+- ✅ **Test status: REFACTORED (2026-10-19).** `test_extremely_long_string_field` used to loop over the fields, so the first failing field stopped the test and hid the rest, and it only asserted the stored value for `bookingdates`. It is now parametrized like Test 6: each field runs as its own case, and each row holds its expected status and stored value. The `totalprice`, `depositpaid` and `bookingdates` rows have `# Known API bug` comments. The long string is defined once as `LONG_STRING` at the top of the module, and it is now 1,100 characters instead of 91.
 
 **Test 6: PUT request with empty-string field(s)**
 (Created a valid booking, then sent a full update payload with each field in turn replaced by `""`, valid auth token included.)
@@ -178,7 +182,7 @@ PUT method test cases are complete — all planned cases (happy path, wrong data
 7. ~~**Still untested:** the valid-range half of Test 6 (checkout genuinely after checkin) has not been automated yet.~~ **Resolved:** the valid-range half of Test 6 is now automated in `test_equivalence_partitioning_valid_dates` (see Test 6b) — the API correctly returns the dates as sent for a well-formed, chronologically-ordered pair.
 8. **PUT against a non-existent ID returns 405, not 404.** Unlike GET, which treats any unresolvable ID as "not found" (see bug #2), PUT against a well-formed but non-existent ID returns `405 Method Not Allowed` — inconsistent handling of the same underlying condition (no matching record) across methods.
 9. **Missing required field is handled differently by POST vs. PUT.** POST returns `500 Internal Server Error` when a required field is omitted (bug #1), but PUT returns `400 Bad Request` for the identical condition — the two methods validate the same requirement at different points in the request lifecycle.
-10. **No length limit on PUT string fields either**, matching bug #5 on POST — long strings (91 chars tested) in any field, including a numeric/boolean field replaced with a string, return 200 with no length or type validation, and don't trigger the 500 seen when every field is mistyped at once (see PUT Test 2). A long string in the nested `bookingdates.checkin`/`checkout` fields is also accepted with 200, but corrupted to `"0NaN-aN-aN"` rather than stored as sent — consistent with bug #6 (see PUT Test 5).
+10. **No length limit on PUT string fields either**, matching bug #5 on POST — long strings (1,100 chars tested) in any field, including a numeric/boolean field replaced with a string, return 200 with no length or type validation, and don't trigger the 500 seen when every field is mistyped at once (see PUT Test 2). The string fields are stored as sent, but a long string in `totalprice` is corrupted to `null` and a long string in `depositpaid` is coerced to `true`. A long string in the nested `bookingdates.checkin`/`checkout` fields is also accepted with 200, but corrupted to `"0NaN-aN-aN"` rather than stored as sent — consistent with bug #6 (see PUT Test 5).
 11. **DELETE against a non-existent ID also returns 405, not 404**, matching PUT's behavior (bug #8) rather than GET's (bug #2) — the same "record not found" condition is handled inconsistently depending on the HTTP method used, now confirmed across three methods (GET: 404, PUT: 405, DELETE: 405).
 12. **DELETE doesn't distinguish a malformed ID from a not-found one.** A malformed (alphanumeric) ID on DELETE returns the same `405 Method Not Allowed` as a well-formed but non-existent ID (bug #11), unlike GET, which returns `404 Not Found` for both malformed and non-existent IDs alike (bug #2) — DELETE and GET are each internally consistent, but disagree with each other on the status code for the same class of condition.
 13. **PUT accepts empty strings for `firstname`/`lastname`/`additionalneeds`, but corrupts `totalprice` and `depositpaid`.** Sending `""` for `totalprice` returns 200 but the stored value comes back as `null` (matching bug #4's POST-side corruption), and sending `""` for `depositpaid` returns 200 but the stored value comes back coerced to boolean `false` — neither is rejected nor stored as sent. Both are now confirmed by automated assertions in `test_empty_string_field` (no longer `xfail`). Replacing the whole `bookingdates` object with `""` is correctly rejected with 400, but an empty string for just a nested `bookingdates.checkin`/`checkout` field is accepted with 200 and corrupted to `"0NaN-aN-aN"`, consistent with bug #6 (see PUT Test 7, confirmed by `test_empty_string_nested_bookingdates_field`).
@@ -277,5 +281,22 @@ Changes since the last run:
 | `test_booking_put.py` | 19 | 19 passed ✅ |
 | `test_booking_delete.py` | 6 | 6 passed ✅ |
 | **Total** | **42** | **42 passed ✅** |
+
+- Every result matches the Actual values documented above.
+
+---
+
+# Full Test Suite Run — 2026-10-19
+
+Changes since the last run:
+- PUT `test_extremely_long_string_field` is parametrized, so each field is reported as its own test (see PUT Test 5). That is why the count is higher than before: no test cases were added or removed.
+
+| File | Tests | Result |
+|---|---|---|
+| `test_booking_get.py` | 5 | 5 passed ✅ |
+| `test_booking_post.py` | 12 | 12 passed ✅ |
+| `test_booking_put.py` | 24 | 24 passed ✅ |
+| `test_booking_delete.py` | 6 | 6 passed ✅ |
+| **Total** | **47** | **47 passed ✅** |
 
 - Every result matches the Actual values documented above.
