@@ -1,6 +1,8 @@
 import requests
 import pytest
 
+LONG_STRING = "Andres12324" * 50
+
 class TestBookingPut:
 
     def test_put_method(self, base_url, token, existing_booking_id):
@@ -20,7 +22,7 @@ class TestBookingPut:
         update_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json=payload, headers={"Cookie": f"token={token}"})
         assert update_response.status_code == 200, update_response.text
         body = update_response.json()
-    
+
         assert body["firstname"] == "Andres"
         assert body["lastname"] == "Reyes"
         assert body["totalprice"] == 100
@@ -28,8 +30,7 @@ class TestBookingPut:
         assert body["bookingdates"]["checkin"] == "2026-02-01"
         assert body["bookingdates"]["checkout"] == "2026-02-05"
         assert body["additionalneeds"] == "Soccer"
-            
-            
+
     def test_put_wrong_data(self, base_url, token, existing_booking_id):
 
         payload = {
@@ -77,31 +78,37 @@ class TestBookingPut:
         if expected_status_code == 400:
             assert response.text == "Bad Request"
 
-    def test_extremely_long_string_field(self, base_url, token, existing_booking_id):
+    @pytest.mark.parametrize("key, expected_status_code, expected_value", [
+        ("firstname", 200, LONG_STRING),
+        ("lastname", 200, LONG_STRING),
+        # Known API bug: an extremely long string should be rejected or stored as sent, but totalprice is corrupted to null
+        ("totalprice", 200, None),
+        # Known API bug: an extremely long string should be rejected or stored as sent, but depositpaid is corrupted to true
+        ("depositpaid", 200, True),
+        # Known API bug: an extremely long string should be rejected or stored as sent, but checkin and checkout are corrupted to 0NaN-aN-aN
+        ("bookingdates", 200, "0NaN-aN-aN"),
+        ("additionalneeds", 200, LONG_STRING)
+    ])
+    def test_extremely_long_string_field(self, base_url, token, existing_booking_id, key, expected_status_code, expected_value):
 
         long_string_payload = existing_booking_id["payload"].copy()
-        long_string = "Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres "
+        if key == "bookingdates":
+            long_string_payload["bookingdates"] = {
+                "checkin": LONG_STRING,
+                "checkout": LONG_STRING,
+            }
+        else:
+            long_string_payload[key] = LONG_STRING
 
-        for key in list(long_string_payload):
+        new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json=long_string_payload, headers={"Cookie": f"token={token}"})
+        assert new_response.status_code == expected_status_code
+        actual = new_response.json()[key]
 
-            long_string_payload = existing_booking_id["payload"].copy()
-            if key == "bookingdates":
-                long_string_payload["bookingdates"] = {
-                    "checkin": long_string,
-                    "checkout": long_string,
-                }
-
-            else:
-                long_string_payload[key] = long_string
-
-            new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json= long_string_payload, headers={"Cookie": f"token={token}"})
-
-            assert new_response.status_code == 200
-
-            if key == "bookingdates":
-                body = new_response.json()
-                assert body["bookingdates"]["checkin"] == "0NaN-aN-aN"
-                assert body["bookingdates"]["checkout"] == "0NaN-aN-aN"
+        if key == "bookingdates":
+            assert actual["checkin"] == expected_value, f"checkin: expected {expected_value!r}, got {actual['checkin']!r}"
+            assert actual["checkout"] == expected_value, f"checkout: expected {expected_value!r}, got {actual['checkout']!r}"
+        else:
+            assert actual == expected_value, f"{key}: expected {expected_value!r}, got {actual!r}"
 
     @pytest.mark.parametrize("key, expected_status_code, expected_value", [
         ("firstname", 200, ""),
@@ -122,7 +129,7 @@ class TestBookingPut:
         assert new_response.status_code == expected_status_code
 
         if expected_status_code == 400:
-            assert new_response.text == "Bad Request"   
+            assert new_response.text == "Bad Request"
         else:
             actual = new_response.json()[key]
             assert actual == expected_value, f"{key}: expected {expected_value!r}, got {actual!r}"
