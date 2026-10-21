@@ -300,3 +300,19 @@ Changes since the last run:
 | **Total** | **47** | **47 passed ✅** |
 
 - Every result matches the Actual values documented above.
+
+---
+
+# Full Test Suite Run — 2026-10-20
+
+No test changes since the last run. This run was used to generate the HTML report (`report.html`) and the [test summary report](../test-summary-report.md).
+
+| File | Tests | Result |
+|---|---|---|
+| `test_booking_get.py` | 5 | 5 passed ✅ |
+| `test_booking_post.py` | 12 | 12 passed ✅ |
+| `test_booking_put.py` | 24 | 24 passed ✅ |
+| `test_booking_delete.py` | 6 | 6 passed ✅ |
+| **Total** | **47** | **47 passed ✅** |
+
+- Every result matches the Actual values documented above.

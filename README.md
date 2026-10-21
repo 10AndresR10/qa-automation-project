@@ -61,6 +61,15 @@ Generate an HTML report:
 pytest tests/ --html=report.html --self-contained-html
 ```
 
+## Test report
+
+The latest run (2026-10-20): **47 tests, 47 passed**. Several tests assert
+known API bugs, so a pass means the API still behaves as documented, not that
+it is bug-free.
+
+See [`test-summary-report.md`](test-summary-report.md) for the results by
+endpoint, the key bugs ranked by severity, and recommendations.
+
 ## Status
 
 Work in progress — see

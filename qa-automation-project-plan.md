@@ -82,3 +82,5 @@ api-test-automation/
 - [x] Set up the project folder structure
 - [x] Write manual test cases (Milestone 1)
 - [x] Start coding first test file
+- [x] Generate HTML report and write test summary report (Milestone 5)
+- [ ] Add GitHub Actions workflow (Milestone 6)
