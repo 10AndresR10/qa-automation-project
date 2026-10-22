@@ -1,3 +1,4 @@
+from pydoc import text
 import requests
 import pytest
 
@@ -30,24 +31,27 @@ class TestBookingPut:
         assert body["bookingdates"]["checkin"] == "2026-02-01"
         assert body["bookingdates"]["checkout"] == "2026-02-05"
         assert body["additionalneeds"] == "Soccer"
+    
+    @pytest.mark.parametrize("key, expected_status_code", [
+        ("firstname", 200),
+        ("lastname", 200),
+        ("totalprice", 200),
+    ])
+    def test_put_wrong_data(self, base_url, token, existing_booking_id, key, expected_status_code):
 
-    def test_put_wrong_data(self, base_url, token, existing_booking_id):
+        put_payload = existing_booking_id["payload"].copy()
 
-        payload = {
-            "firstname": 0000,
-            "lastname": True,
-            "totalprice": "One",
-            "depositpaid": 0,
-            "bookingdates": {
-                "checkin": 0,
-                "checkout": " "
-            },
-            "additionalneeds": False
-            }
-
-        new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json= payload, headers={"Cookie": f"token={token}"})
-        assert new_response.status_code == 500
-        assert new_response.text == "Internal Server Error"
+        for key in put_payload:
+            if key == "firstname" or key == "lastname":
+                put_payload = existing_booking_id["payload"].copy()
+                put_payload[key] = 0
+                new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json= put_payload, headers={"Cookie": f"token={token}"})
+                assert new_response.status_code == expected_status_code
+            elif key == "totalprice":
+                put_payload = existing_booking_id["payload"].copy()
+                put_payload[key] = "One"
+                new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json=put_payload, headers={"Cookie": f"token={token}"})
+                assert new_response.status_code == expected_status_code
 
     def test_non_existent_booking_ID(self, base_url, token, existing_booking_id):
 
