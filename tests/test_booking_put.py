@@ -1,4 +1,3 @@
-from pydoc import text
 import requests
 import pytest
 
@@ -32,27 +31,21 @@ class TestBookingPut:
         assert body["bookingdates"]["checkout"] == "2026-02-05"
         assert body["additionalneeds"] == "Soccer"
     
-    @pytest.mark.parametrize("key, expected_status_code", [
-        ("firstname", 200),
-        ("lastname", 200),
-        ("totalprice", 200),
+    @pytest.mark.parametrize("key, expected_status_code, wrong_value, expected_value", [
+        ("firstname", 200, 0, 0),
+        ("lastname", 200, 0, 0),
+        ("totalprice", 200, "One", None),
+        ("depositpaid", 200, 0, False),        
     ])
-    def test_put_wrong_data(self, base_url, token, existing_booking_id, key, expected_status_code):
+    def test_put_wrong_data(self, base_url, token, existing_booking_id, key, expected_status_code, wrong_value, expected_value):
 
         put_payload = existing_booking_id["payload"].copy()
-
-        for key in put_payload:
-            if key == "firstname" or key == "lastname":
-                put_payload = existing_booking_id["payload"].copy()
-                put_payload[key] = 0
-                new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json= put_payload, headers={"Cookie": f"token={token}"})
-                assert new_response.status_code == expected_status_code
-            elif key == "totalprice":
-                put_payload = existing_booking_id["payload"].copy()
-                put_payload[key] = "One"
-                new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json=put_payload, headers={"Cookie": f"token={token}"})
-                assert new_response.status_code == expected_status_code
-
+        put_payload[key] = wrong_value
+        new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json=put_payload, headers={"Cookie": f"token={token}"})
+        assert new_response.status_code == expected_status_code, f"Expected {expected_status_code} with {key}, but got {new_response.status_code}"
+        body = new_response.json()
+        assert body[key] == expected_value           
+   
     def test_non_existent_booking_ID(self, base_url, token, existing_booking_id):
 
         booking_id = existing_booking_id["id"]
