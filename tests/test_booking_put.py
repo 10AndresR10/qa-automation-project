@@ -32,10 +32,18 @@ class TestBookingPut:
         assert body["additionalneeds"] == "Soccer"
     
     @pytest.mark.parametrize("key, expected_status_code, wrong_value, expected_value", [
+        # Known API bug: a wrong data type should be rejected, but firstname stores the number as sent
         ("firstname", 200, 0, 0),
+        # Known API bug: a wrong data type should be rejected, but lastname stores the number as sent
         ("lastname", 200, 0, 0),
+        # Known API bug: a wrong data type should be rejected, but totalprice is corrupted to null
         ("totalprice", 200, "One", None),
-        ("depositpaid", 200, 0, False),        
+        # Known API bug: a wrong data type should be rejected, but depositpaid is corrupted to false
+        ("depositpaid", 200, 0, False),
+        # expected_value is not checked for 400 responses
+        ("bookingdates", 400, 0, None),
+        # Known API bug: a wrong data type should be rejected, but additionalneeds stores the boolean as sent
+        ("additionalneeds", 200, False, False)
     ])
     def test_put_wrong_data(self, base_url, token, existing_booking_id, key, expected_status_code, wrong_value, expected_value):
 
@@ -43,9 +51,12 @@ class TestBookingPut:
         put_payload[key] = wrong_value
         new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json=put_payload, headers={"Cookie": f"token={token}"})
         assert new_response.status_code == expected_status_code, f"Expected {expected_status_code} with {key}, but got {new_response.status_code}"
-        body = new_response.json()
-        assert body[key] == expected_value           
-   
+        if expected_status_code == 400:
+            assert new_response.text == "Bad Request"
+        else:
+            body = new_response.json()
+            assert body[key] == expected_value, f"{key}: expected {expected_value!r}, got {body[key]!r}"
+
     def test_non_existent_booking_ID(self, base_url, token, existing_booking_id):
 
         booking_id = existing_booking_id["id"]
