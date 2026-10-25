@@ -38,7 +38,7 @@ class TestBookingPut:
         ("lastname", 200, 0, 0),
         # Known API bug: a wrong data type should be rejected, but totalprice is corrupted to null
         ("totalprice", 200, "One", None),
-        # Known API bug: a wrong data type should be rejected, but depositpaid is corrupted to false
+        # 0 is coerced to false (bool(0)), not a bug
         ("depositpaid", 200, 0, False),
         # expected_value is not checked for 400 responses
         ("bookingdates", 400, 0, None),
