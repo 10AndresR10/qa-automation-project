@@ -110,9 +110,17 @@ Actual: 200 ✅ — all fields (`firstname`, `lastname`, `totalprice`, `depositp
 - ✅ **Test status: FIXED (2026-10-12).** `test_put_method` used to call `.json()` before checking the status code, so a non-200 response without a JSON body failed with a JSON decode error instead of the real problem. It now asserts the status first and shows the response body in the failure message. The update payload also used to keep `depositpaid`, `bookingdates` and `additionalneeds` the same as the original booking (`True`, `2026-01-01`/`2026-01-05`, `"Breakfast"`), so the test would still pass if the API ignored those fields. Every field now changes (`depositpaid: False`, `2026-02-01`/`2026-02-05`, `"Soccer"`), so the test shows that each field is actually updated.
 
 **Test 2: PUT request with wrong data type per field**
-(`firstname` as an int, `lastname` as a bool, `totalprice` as a string, `depositpaid` as an int, `checkin` as an int, `checkout` as a whitespace string, `additionalneeds` as a bool — auth token included.)
-Expected (assumed): 400 Bad Request
-Actual: **500 Internal Server Error** ("Internal Server Error" body) — consistent with POST's handling of mistyped fields (see POST Test 2).
+(Created a valid booking, then sent a full update payload with one field in turn replaced by a wrong type, valid auth token included: `firstname` as `0`, `lastname` as `0`, `totalprice` as `"One"`, `depositpaid` as `0`, the whole `bookingdates` object as `0`, and `additionalneeds` as `False`.)
+Expected (assumed): 400 Bad Request for any field
+Actual:
+- `firstname`/`lastname` set to `0` → **200**, stored as the number `0` — 🐛 **Bug:** the wrong type is accepted and stored as sent. This is **inconsistent with POST**, which returns 500 for a number in the same fields (see POST Test 2 and bug #18).
+- `totalprice` set to `"One"` → **200**, but the stored `totalprice` comes back as **`null`** — 🐛 **Bug:** the same silent corruption as bug #4.
+- `depositpaid` set to `0` → **200**, coerced to `false` — the same numeric-truthiness coercion as POST (`bool(0)`), not a bug (see POST Test 2).
+- `bookingdates` set to `0` (replacing the whole nested object with a number) → **400 Bad Request** ("Bad Request" body) — the only field actually rejected, the same as replacing it with `""` (see Test 6).
+- `additionalneeds` set to `False` → **200**, stored as the boolean `false` — 🐛 **Bug:** no type validation, the same as POST (see bug #15).
+- Re-confirmed on 2026-10-24 by sending the requests directly: the raw JSON response stores `firstname`/`lastname` as the number `0` and `additionalneeds` as the boolean `false`. The automated asserts alone can't show this, because in Python `0 == False`.
+- Originally this was one manual request with **every** field mistyped at once (`checkin` as an int, `checkout` as a whitespace string), which returned **500 Internal Server Error**. With one wrong field per request, the API never returns 500.
+- ✅ **Test status: REFACTORED (2026-10-24).** `test_put_wrong_data` is now parametrized like Test 4–6: each field runs as its own case, and each row holds the wrong value, the expected status and the expected stored value. The `400` case (`bookingdates`) asserts the `"Bad Request"` body instead of parsing JSON, and every `200` case compares the stored value with the row's expected value. The bug rows have `# Known API bug` comments.
 
 **Test 3: PUT request against a non-existent booking ID**
 (Created a valid booking, deleted it, then sent a full update payload to the now-deleted ID, valid auth token included. Originally tested with a hard-coded 11-digit ID, `99999999999`; a booking that is known to be gone is more reliable than guessing an ID that doesn't exist.)
@@ -190,6 +198,7 @@ PUT method test cases are complete — all planned cases (happy path, wrong data
 15. **`additionalneeds` has no type validation.** On POST, an integer or boolean `additionalneeds` is accepted with 200 and stored with its wrong type (`543219`, `true`, `false`) — no rejection and no conversion to a string, unlike the other string fields `firstname`/`lastname`, which return 500 for the same inputs (bug #1, bug #14). Confirmed by `test_wrong_data_type` (see POST Test 2).
 16. **Numeric strings in `bookingdates` are parsed as years and silently truncated.** On POST, a numeric string such as `"193735"` for `checkin`/`checkout` is accepted with 200 and stored as `"3735-01-01"` — the API treats it as year 193735 and keeps only the last four digits. Values above `275760` (the JavaScript `Date` year limit) fall back to `"0NaN-aN-aN"` (bug #6). The truncated result looks like a valid date, which makes this worse than the `NaN` case: the corruption is hard to spot. Found when `test_wrong_data_type` failed intermittently (see POST Test 2). Re-confirmed on 2026-09-28 by sending the requests directly: still present.
 17. **PUT keeps an omitted optional field's old value.** Sending a PUT without `additionalneeds` returns 200, and the booking keeps its previous `additionalneeds` (e.g. `"Breakfast"`) instead of clearing it. PUT should replace the whole resource, so here it behaves more like a partial update (PATCH). Found by a direct request on 2026-10-17 (see PUT Test 4); not yet covered by an automated assertion.
+18. **POST and PUT handle a number in `firstname`/`lastname` differently.** POST returns `500 Internal Server Error` for a number in these fields (bug #1), but PUT accepts `0` with 200 and stores it as the number `0` — no rejection and no conversion to a string. This is the same kind of POST-vs-PUT split as bug #9. Confirmed by `test_put_wrong_data` (see PUT Test 2) and re-confirmed on 2026-10-24 by sending the requests directly.
 
 ---
 
