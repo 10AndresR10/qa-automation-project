@@ -52,6 +52,12 @@ class TestBookingPut:
         ("totalprice", 200, False, None),
         # 0 is coerced to false (bool(0)), not a bug
         ("depositpaid", 200, 0, False),
+        # A non-empty string is coerced to true (bool("True")), not a bug
+        ("depositpaid", 200, "True", True),
+        # Known API bug: a wrong data type should be rejected, but "False" is coerced to true and inverts the meaning
+        ("depositpaid", 200, "False", True),
+        # A non-zero number is coerced to true (bool(888.0)), not a bug
+        ("depositpaid", 200, 888.000, True),
         # expected_value is not checked for 400 or 500 responses
         ("bookingdates", 400, 0, None),
         # Known API bug: a wrong data type should be rejected, but additionalneeds stores the boolean as sent
