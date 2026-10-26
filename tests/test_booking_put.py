@@ -34,16 +34,24 @@ class TestBookingPut:
     @pytest.mark.parametrize("key, expected_status_code, wrong_value, expected_value", [
         # Known API bug: a wrong data type should be rejected, but firstname stores the number as sent
         ("firstname", 200, 0, 0),
+        # Known API bug: a wrong data type should be rejected with 400, but True crashes the server
+        ("firstname", 500, True, None),
+        # Known API bug: a wrong data type should be rejected, but firstname stores the boolean as sent
+        ("firstname", 200, False, False),
         # Known API bug: a wrong data type should be rejected, but lastname stores the number as sent
         ("lastname", 200, 0, 0),
+        # Known API bug: a wrong data type should be rejected with 400, but True crashes the server
+        ("lastname", 500, True, None),
+        # Known API bug: a wrong data type should be rejected, but lastname stores the boolean as sent
+        ("lastname", 200, False, False),
         # Known API bug: a wrong data type should be rejected, but totalprice is corrupted to null
         ("totalprice", 200, "One", None),
         # 0 is coerced to false (bool(0)), not a bug
         ("depositpaid", 200, 0, False),
-        # expected_value is not checked for 400 responses
+        # expected_value is not checked for 400 or 500 responses
         ("bookingdates", 400, 0, None),
         # Known API bug: a wrong data type should be rejected, but additionalneeds stores the boolean as sent
-        ("additionalneeds", 200, False, False)
+        ("additionalneeds", 200, False, False),      
     ])
     def test_put_wrong_data(self, base_url, token, existing_booking_id, key, expected_status_code, wrong_value, expected_value):
 
@@ -53,6 +61,8 @@ class TestBookingPut:
         assert new_response.status_code == expected_status_code, f"Expected {expected_status_code} with {key}, but got {new_response.status_code}"
         if expected_status_code == 400:
             assert new_response.text == "Bad Request"
+        elif expected_status_code == 500:
+            assert new_response.text == "Internal Server Error"
         else:
             body = new_response.json()
             assert body[key] == expected_value, f"{key}: expected {expected_value!r}, got {body[key]!r}"
