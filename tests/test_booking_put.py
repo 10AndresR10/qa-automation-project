@@ -59,9 +59,20 @@ class TestBookingPut:
         # A non-zero number is coerced to true (bool(888.0)), not a bug
         ("depositpaid", 200, 888.000, True),
         # expected_value is not checked for 400 or 500 responses
+        # A number is correctly rejected for bookingdates
         ("bookingdates", 400, 0, None),
+        # A boolean is correctly rejected for bookingdates
+        ("bookingdates", 400, False, None),
+        # A string is correctly rejected for bookingdates
+        ("bookingdates", 400, "One", None),
         # Known API bug: a wrong data type should be rejected, but additionalneeds stores the boolean as sent
-        ("additionalneeds", 200, False, False),      
+        ("additionalneeds", 200, False, False),
+        # Known API bug: a wrong data type should be rejected, but additionalneeds stores the number as sent
+        ("additionalneeds", 200, 0, 0),
+        # Known API bug: a wrong data type should be rejected, but additionalneeds stores the boolean as sent
+        ("additionalneeds", 200, True, True),
+        # Known API bug: a wrong data type should be rejected, but additionalneeds stores the float as sent
+        ("additionalneeds", 200, 8.9999, 8.9999),
     ])
     def test_put_wrong_data(self, base_url, token, existing_booking_id, key, expected_status_code, wrong_value, expected_value):
 
