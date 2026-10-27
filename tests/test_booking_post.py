@@ -59,6 +59,32 @@ class TestBookingPost:
         ("depositpaid", 200, 0, False),
         # A non-zero number is coerced to true (bool(-99)), not a bug
         ("depositpaid", 200, -99, True),
+        # Known API bug: a wrong data type should be rejected with 400, but True crashes the server
+        ("bookingdates", 500, True, None),
+        # Known API bug: a wrong data type should be rejected with 400, but False crashes the server
+        ("bookingdates", 500, False, None),
+        # Known API bug: a wrong data type should be rejected with 400, but the number crashes the server
+        ("bookingdates", 500, 0, None),
+        # Known API bug: a wrong data type should be rejected with 400, but the number crashes the server
+        ("bookingdates", 500, 12345, None),
+        # Known API bug: a wrong data type should be rejected with 400, but the negative number crashes the server
+        ("bookingdates", 500, -12345, None),
+        # Known API bug: a wrong data type should be rejected with 400, but the string crashes the server
+        ("bookingdates", 500, "Andres", None),
+        # Known API bug: a wrong data type should be rejected with 400, but the float crashes the server
+        ("bookingdates", 500, 3.14, None),
+        # Known API bug: a wrong data type should be rejected, but additionalneeds stores the number as sent
+        ("additionalneeds", 200, 0, 0),
+        # Known API bug: a wrong data type should be rejected, but additionalneeds stores the number as sent
+        ("additionalneeds", 200, 12345, 12345),
+        # Known API bug: a wrong data type should be rejected, but additionalneeds stores the negative number as sent
+        ("additionalneeds", 200, -12345, -12345),
+        # Known API bug: a wrong data type should be rejected, but additionalneeds stores the boolean as sent
+        ("additionalneeds", 200, True, True),
+        # Known API bug: a wrong data type should be rejected, but additionalneeds stores the boolean as sent
+        ("additionalneeds", 200, False, False),
+        # Known API bug: a wrong data type should be rejected, but additionalneeds stores the float as sent
+        ("additionalneeds", 200, 3.14, 3.14),
     ])
     def test_wrong_data_type(self, base_url, key, expected_status_code, wrong_value, expected_value):
 
