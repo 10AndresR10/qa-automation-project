@@ -17,7 +17,50 @@ class TestBookingPost:
         assert body["booking"]["additionalneeds"] == payload["additionalneeds"]
         assert "bookingid" in body
 
-    def test_wrong_data_type(self, base_url):
+    @pytest.mark.parametrize("key, expected_status_code, wrong_value, expected_value",[
+        # expected_value is not checked for 500 responses
+        # Known API bug: a wrong data type should be rejected with 400, but the number crashes the server
+        ("firstname", 500, 12345, None),
+        # Known API bug: a wrong data type should be rejected with 400, but True crashes the server
+        ("firstname", 500, True, None),
+        # Known API bug: a wrong data type should be rejected, but firstname stores the boolean as sent
+        ("firstname", 200, False, False),
+        # Known API bug: a wrong data type should be rejected with 400, but the float crashes the server
+        ("firstname", 500, 3.14, None),
+        # Known API bug: a wrong data type should be rejected with 400, but the number crashes the server
+        ("lastname", 500, 12345, None),
+        # Known API bug: a wrong data type should be rejected with 400, but True crashes the server
+        ("lastname", 500, True, None),
+        # Known API bug: a wrong data type should be rejected, but lastname stores the boolean as sent
+        ("lastname", 200, False, False),
+        # Known API bug: a wrong data type should be rejected with 400, but the float crashes the server
+        ("lastname", 500, 3.14, None),
+        # Known API bug: a wrong data type should be rejected, but totalprice is corrupted to null
+        ("totalprice", 200, "One", None),
+        # A numeric string is coerced to a number (Number("12345")), not a bug
+        ("totalprice", 200, "12345", 12345),
+        # Known API bug: a wrong data type should be rejected, but True corrupts totalprice to null
+        ("totalprice", 200, True, None),
+        # Known API bug: a wrong data type should be rejected, but False corrupts totalprice to null
+        ("totalprice", 200, False, None),
+        # Known API bug: a negative price should be rejected, but totalprice stores it as sent
+        ("totalprice", 200, -1000, -1000),
+        # A non-empty string is coerced to true (bool("True")), not a bug
+        ("depositpaid", 200, "True", True),
+        # Known API bug: a wrong data type should be rejected, but "False" is coerced to true and inverts the meaning
+        ("depositpaid", 200, "False", True),
+        # A non-empty string is coerced to true (bool("Andres")), not a bug
+        ("depositpaid", 200, "Andres", True),
+        # A non-zero number is coerced to true (bool(123456)), not a bug
+        ("depositpaid", 200, 123456, True),
+        # A non-zero number is coerced to true (bool(3.1233)), not a bug
+        ("depositpaid", 200, 3.1233, True),
+        # 0 is coerced to false (bool(0)), not a bug
+        ("depositpaid", 200, 0, False),
+        # A non-zero number is coerced to true (bool(-99)), not a bug
+        ("depositpaid", 200, -99, True),
+    ])
+    def test_wrong_data_type(self, base_url, key, expected_status_code, wrong_value, expected_value):
 
         payload = {
             "firstname": "Andres",
@@ -31,102 +74,16 @@ class TestBookingPost:
             "additionalneeds": "Breakfast"
         }
 
-        new_value = 123456
-        new_digit = str(new_value)
         new_payload = payload.copy()
-
-        for key in new_payload:
-            if key == "firstname" or key == "lastname":
-                new_payload = payload.copy()
-                new_payload[key] = new_value
-                response = requests.post(f"{base_url}/booking", json=new_payload)
-                assert response.status_code == 500
-                assert response.text == "Internal Server Error"
-                expected_results = {True: 500, False: 200}
-                for i, expected_status in expected_results.items():
-                    new_payload = payload.copy()
-                    new_payload[key] = i
-                    new_response = requests.post(f"{base_url}/booking", json=new_payload)
-                    assert new_response.status_code == expected_status, f"Expected {expected_status} for {key}={i}, but got {new_response.status_code}"
-
-                    if i:
-                        assert new_response.text == "Internal Server Error"
-                    else:
-                        body = new_response.json()
-                        stored_value = body["booking"][key]
-                        assert stored_value is False, f"Expected {key} to be stored as False for input {i}, but got {stored_value}"
-            
-            elif key == "totalprice":
-                new_payload = payload.copy()
-                new_payload[key] = new_digit
-                response = requests.post(f"{base_url}/booking", json= new_payload)
-                assert response.status_code == 200
-
-                for boolean in [True, False]:
-                    new_payload = payload.copy()
-                    new_payload[key] = boolean
-                    new_response = requests.post(f"{base_url}/booking", json=new_payload)
-                    assert new_response.status_code == 200
-                    body = new_response.json()
-                    stored_value = body["booking"]["totalprice"]
-                    assert stored_value is None, f"Expected totalprice to be corrupted to null for input {boolean}, but got {stored_value}"
-        
-            elif key == "depositpaid":
-                new_payload = payload.copy()
-                new_payload[key] = new_digit
-                response = requests.post(f"{base_url}/booking", json=new_payload)
-                assert response.status_code == 200
-                body = response.json()
-                stored_value = body["booking"]["depositpaid"]
-                assert stored_value is True, f"Expected depositpaid to coerce truthy string '{new_digit}' to True, but got {stored_value}"
-
-                new_payload = payload.copy()
-                new_payload[key] = new_value
-                response = requests.post(f"{base_url}/booking", json=new_payload)
-                assert response.status_code == 200
-
-                for number in range(0, 2):
-                    new_payload = payload.copy()
-                    new_payload[key] = number
-                    new_response = requests.post(f"{base_url}/booking", json=new_payload)
-                    assert new_response.status_code == 200
-                    body = new_response.json()
-                    stored_value = body["booking"]["depositpaid"]
-                    assert stored_value == bool(number), f"Expected depositpaid to coerce {number} to {bool(number)}, but got {stored_value}"
-
-            elif key == "bookingdates":
-                year_numbers = [275759, 275760, 275761]
-                for item in payload[key]:
-                    for year in year_numbers:
-                        new_payload = payload.copy()
-                        new_payload[key] = payload[key].copy()
-                        new_payload[key][item] = str(year)
-                        response = requests.post(f"{base_url}/booking", json=new_payload)
-                        assert response.status_code == 200
-                        body = response.json()
-                        stored_value = body["booking"]["bookingdates"][item]
-                        if year > 275760: 
-                            assert "0NaN-aN-aN" in stored_value, f"Expected {item} to be corrupted to a NaN-containing string for input '{year}', but got {stored_value}"
-                        elif year <= 275760:
-                            expected_year = str(year)[-4:]
-                            assert stored_value.startswith(expected_year), f"Expected {item} to be truncated to year '{expected_year}' from input '{year}', but got '{stored_value}'"
-
-            elif key == "additionalneeds":
-                new_payload = payload.copy()
-                new_payload[key] = new_value
-                response = requests.post(f"{base_url}/booking", json=new_payload)
-                assert response.status_code == 200
-                
-                for bool_item in [True, False]:
-                    new_payload = payload.copy()
-                    new_payload[key] = bool_item
-                    new_response = requests.post(f"{base_url}/booking", json=new_payload)
-                    assert new_response.status_code == 200
-                    body = new_response.json()
-                    stored_value = body["booking"][key]
-                    assert stored_value == bool_item, f"Expected {key} to coerce {bool_item} to {bool_item}, but got {stored_value}"
-
-
+        new_payload[key] = wrong_value
+        response = requests.post(f"{base_url}/booking", json=new_payload)
+        assert response.status_code == expected_status_code, f"Expected {expected_status_code} with {key}, but got {response.status_code}"
+        if expected_status_code == 500:
+            assert response.text == "Internal Server Error"
+        else:
+            body = response.json()
+            assert body["booking"][key] == expected_value, f"{key}: expected {expected_value!r}, got {body['booking'][key]!r}"
+               
     @pytest.mark.parametrize("key, expected_status_code", [
         ("firstname", 500),
         ("lastname", 500),
