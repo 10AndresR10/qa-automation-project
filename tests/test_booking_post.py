@@ -109,8 +109,43 @@ class TestBookingPost:
         else:
             body = response.json()
             assert body["booking"][key] == expected_value, f"{key}: expected {expected_value!r}, got {body['booking'][key]!r}"
-               
-    @pytest.mark.parametrize("key, expected_status_code", [
+
+    @pytest.mark.parametrize("date_key", ["checkin", "checkout"])
+    @pytest.mark.parametrize("expected_status_code, wrong_value, expected_value",[
+        # Known API bug: a wrong data type should be rejected, but the number is read as milliseconds since 1970-01-01
+        (200, 275760, "1970-01-01"),
+        # Known API bug: a wrong data type should be rejected, but the number is read as milliseconds since 1970-01-01
+        (200, 275759, "1970-01-01"),
+        # Known API bug: a wrong data type should be rejected, but the number is read as milliseconds since 1970-01-01
+        (200, 275761, "1970-01-01"),
+        # Known API bug: an invalid date should be rejected, but the string is read as the max year 275760 and stored cut to 4 digits
+        (200, "275760", "5760-01-01"),
+        # Known API bug: an invalid date should be rejected with 400, but a year past the max 275760 is stored as an Invalid Date
+        (200, "275761", "0NaN-aN-aN"),
+        # Known API bug: an invalid date should be rejected, but the string is read as year 275759 and stored cut to 4 digits
+        (200, "275759", "5759-01-01"),
+        ])
+    def test_wrong_data_type_nested_dict(self, base_url, date_key, wrong_value, expected_value, expected_status_code):
+
+        payload = {
+            "firstname": "Andres",
+            "lastname": "Reyes",
+            "totalprice": 10,
+            "depositpaid": True,
+            "bookingdates": {
+                "checkin": "2026-01-01",
+                "checkout": "2027-01-01"
+            },
+            "additionalneeds": "Breakfast"
+        }
+        wrong_payload = payload.copy()
+        wrong_payload["bookingdates"][date_key] = wrong_value
+        response = requests.post(f"{base_url}/booking", json=wrong_payload)
+        assert response.status_code == expected_status_code, f"Expected {expected_status_code} with {date_key}, but got {response.status_code}"
+        body = response.json()
+        assert body["booking"]["bookingdates"][date_key] == expected_value, f"{date_key}: expected {expected_value!r}, got {body['booking']['bookingdates'][date_key]!r}"
+              
+    @pytest.mark.parametrize("key, expected_status_code",[
         ("firstname", 500),
         ("lastname", 500),
         ("totalprice", 500),
