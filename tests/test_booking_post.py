@@ -112,6 +112,7 @@ class TestBookingPost:
 
     @pytest.mark.parametrize("date_key", ["checkin", "checkout"])
     @pytest.mark.parametrize("expected_status_code, wrong_value, expected_value",[
+        # expected_value is not checked for 500 responses
         # Known API bug: a wrong data type should be rejected, but the number is read as milliseconds since 1970-01-01
         (200, 275760, "1970-01-01"),
         # Known API bug: a wrong data type should be rejected, but the number is read as milliseconds since 1970-01-01
@@ -124,6 +125,20 @@ class TestBookingPost:
         (200, "275761", "0NaN-aN-aN"),
         # Known API bug: an invalid date should be rejected, but the string is read as year 275759 and stored cut to 4 digits
         (200, "275759", "5759-01-01"),
+        # Known API bug: an invalid date should be rejected with 400, but a word is stored as an Invalid Date
+        (200, "Tomorrow", "0NaN-aN-aN"),
+        # Known API bug: a wrong data type should be rejected, but True is read as 1 millisecond since 1970-01-01
+        (200, True, "1970-01-01"),
+        # Known API bug: a wrong data type should be rejected, but False is read as 0 milliseconds since 1970-01-01
+        (200, False, "1970-01-01"),
+        # Known API bug: a null date should be rejected with 400, but it crashes the server
+        (500, None, None),
+        # Known API bug: a negative year should be rejected or stored as sent, but the minus sign is dropped and year -2026 is stored as 2026
+        (200, "-2026-01-21", "2026-01-21"),
+        # Known API bug: a wrong data type should be rejected with 400, but the empty list is stored as an Invalid Date
+        (200, [], "0NaN-aN-aN"),
+        # Known API bug: a wrong data type should be rejected, but the float is read as milliseconds since 1970-01-01
+        (200, 3.14, "1970-01-01"),
         ])
     def test_wrong_data_type_nested_dict(self, base_url, date_key, wrong_value, expected_value, expected_status_code):
 
@@ -141,8 +156,11 @@ class TestBookingPost:
         payload["bookingdates"][date_key] = wrong_value
         response = requests.post(f"{base_url}/booking", json=payload)
         assert response.status_code == expected_status_code, f"Expected {expected_status_code} with {date_key}, but got {response.status_code}"
-        body = response.json()
-        assert body["booking"]["bookingdates"][date_key] == expected_value, f"{date_key}: expected {expected_value!r}, got {body['booking']['bookingdates'][date_key]!r}"
+        if expected_status_code == 500:
+            assert response.text == "Internal Server Error"
+        else:
+            body = response.json()
+            assert body["booking"]["bookingdates"][date_key] == expected_value, f"{date_key}: expected {expected_value!r}, got {body['booking']['bookingdates'][date_key]!r}"
 
     @pytest.mark.parametrize("key, expected_status_code",[
         ("firstname", 500),
