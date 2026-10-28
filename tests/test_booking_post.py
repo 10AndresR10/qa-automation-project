@@ -138,13 +138,12 @@ class TestBookingPost:
             },
             "additionalneeds": "Breakfast"
         }
-        wrong_payload = payload.copy()
-        wrong_payload["bookingdates"][date_key] = wrong_value
-        response = requests.post(f"{base_url}/booking", json=wrong_payload)
+        payload["bookingdates"][date_key] = wrong_value
+        response = requests.post(f"{base_url}/booking", json=payload)
         assert response.status_code == expected_status_code, f"Expected {expected_status_code} with {date_key}, but got {response.status_code}"
         body = response.json()
         assert body["booking"]["bookingdates"][date_key] == expected_value, f"{date_key}: expected {expected_value!r}, got {body['booking']['bookingdates'][date_key]!r}"
-              
+
     @pytest.mark.parametrize("key, expected_status_code",[
         ("firstname", 500),
         ("lastname", 500),
@@ -174,7 +173,6 @@ class TestBookingPost:
         if expected_status_code == 500:
             assert response.text == "Internal Server Error"
 
-            
     def test_empty_string_field(self, base_url):
 
         payload = {
@@ -224,7 +222,7 @@ class TestBookingPost:
         assert body["booking"]["additionalneeds"] == payload["additionalneeds"]
 
     def test_equivalence_partitioning_checkvariables(self, base_url):
-        
+
         payload = {
             "firstname": "Andres",
             "lastname": "Reyes",
