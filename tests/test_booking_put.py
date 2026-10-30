@@ -89,14 +89,28 @@ class TestBookingPut:
             assert body[key] == expected_value, f"{key}: expected {expected_value!r}, got {body[key]!r}"
 
     @pytest.mark.parametrize("date_key", ["checkin", "checkout"])
-    @pytest.mark.parametrize("wrong_value, expected_status_code, expected_value",[(275760, 200, "1970-01-01")])
+    @pytest.mark.parametrize("wrong_value, expected_status_code, expected_value", [
+        # Known API bug: a wrong data type should be rejected, but the number is read as milliseconds since 1970-01-01
+        (275759, 200, "1970-01-01"),
+        # Known API bug: a wrong data type should be rejected, but the number is read as milliseconds since 1970-01-01
+        (275760, 200, "1970-01-01"),
+        # Known API bug: a wrong data type should be rejected, but the number is read as milliseconds since 1970-01-01
+        (275761, 200, "1970-01-01"),
+        # Known API bug: an invalid date should be rejected, but the string is read as year 275759 and stored cut to 4 digits
+        ("275759", 200, "5759-01-01"),
+        # Known API bug: an invalid date should be rejected, but the string is read as the max year 275760 and stored cut to 4 digits
+        ("275760", 200, "5760-01-01"),
+        # Known API bug: an invalid date should be rejected with 400, but a year past the max 275760 is stored as an Invalid Date
+        ("275761", 200, "0NaN-aN-aN"),
+    ])
     def test_put_wrong_data_nested_dict(self, base_url, token, existing_booking_id, date_key, wrong_value, expected_status_code, expected_value):
 
         put_payload = existing_booking_id["payload"]
         put_payload["bookingdates"][date_key] = wrong_value
         new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json=put_payload, headers={"Cookie": f"token={token}"})
-        assert expected_status_code == new_response.status_code
-
+        assert new_response.status_code == expected_status_code, f"Expected {expected_status_code} with {date_key}, but got {new_response.status_code}"
+        body = new_response.json()
+        assert body["bookingdates"][date_key] == expected_value, f"{date_key}: expected {expected_value!r}, got {body['bookingdates'][date_key]!r}"
 
     def test_non_existent_booking_ID(self, base_url, token, existing_booking_id):
 
