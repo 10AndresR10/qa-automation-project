@@ -88,6 +88,16 @@ class TestBookingPut:
             body = new_response.json()
             assert body[key] == expected_value, f"{key}: expected {expected_value!r}, got {body[key]!r}"
 
+    @pytest.mark.parametrize("date_key", ["checkin", "checkout"])
+    @pytest.mark.parametrize("wrong_value, expected_status_code, expected_value",[(275760, 200, "1970-01-01")])
+    def test_put_wrong_data_nested_dict(self, base_url, token, existing_booking_id, date_key, wrong_value, expected_status_code, expected_value):
+
+        put_payload = existing_booking_id["payload"]
+        put_payload["bookingdates"][date_key] = wrong_value
+        new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json=put_payload, headers={"Cookie": f"token={token}"})
+        assert expected_status_code == new_response.status_code
+
+
     def test_non_existent_booking_ID(self, base_url, token, existing_booking_id):
 
         booking_id = existing_booking_id["id"]
