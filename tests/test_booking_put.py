@@ -117,6 +117,10 @@ class TestBookingPut:
         (None, 400, None),
         # Known API bug: a date not in YYYY-MM-DD format should be rejected with 400, but it is read as month/day and stored as 2 January
         ("01/02/2026", 200, "2026-01-02"),
+        # Known API bug: a negative year should be rejected or stored as sent, but the minus sign is dropped and year -2026 is stored as 2026
+        ("-2026-01-21", 200, "2026-01-21"),
+        # Known API bug: a wrong data type should be rejected with 400, but the empty list is stored as an Invalid Date
+        ([], 200, "0NaN-aN-aN"),
     ])
     def test_put_wrong_data_nested_dict(self, base_url, token, existing_booking_id, date_key, wrong_value, expected_status_code, expected_value):
 
