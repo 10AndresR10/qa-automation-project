@@ -102,15 +102,35 @@ class TestBookingPut:
         ("275760", 200, "5760-01-01"),
         # Known API bug: an invalid date should be rejected with 400, but a year past the max 275760 is stored as an Invalid Date
         ("275761", 200, "0NaN-aN-aN"),
+        # Known API bug: a wrong data type should be rejected, but True is read as 1 millisecond since 1970-01-01
+        (True, 200, "1970-01-01"),
+        # Known API bug: a wrong data type should be rejected, but False is read as 0 milliseconds since 1970-01-01
+        (False, 200, "1970-01-01"),
+        # Known API bug: an invalid date should be rejected with 400, but a word is stored as an Invalid Date
+        ("Tomorrow", 200, "0NaN-aN-aN"),
+        # Known API bug: a wrong data type should be rejected with 400, but the empty dict is stored as an Invalid Date
+        ({}, 200, "0NaN-aN-aN"),
+        # Known API bug: a wrong data type should be rejected, but the float is read as milliseconds since 1970-01-01
+        (3.14, 200, "1970-01-01"),
+        # expected_value is not checked for 400 responses
+        # A null date is correctly rejected (POST crashes with 500 instead, see bug #24)
+        (None, 400, None),
+        # Known API bug: a date not in YYYY-MM-DD format should be rejected with 400, but it is read as month/day and stored as 2 January
+        ("01/02/2026", 200, "2026-01-02"),
     ])
     def test_put_wrong_data_nested_dict(self, base_url, token, existing_booking_id, date_key, wrong_value, expected_status_code, expected_value):
 
-        put_payload = existing_booking_id["payload"]
+        payload = existing_booking_id["payload"]
+        put_payload = payload.copy()
+        put_payload["bookingdates"] = payload["bookingdates"].copy()
         put_payload["bookingdates"][date_key] = wrong_value
         new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json=put_payload, headers={"Cookie": f"token={token}"})
         assert new_response.status_code == expected_status_code, f"Expected {expected_status_code} with {date_key}, but got {new_response.status_code}"
-        body = new_response.json()
-        assert body["bookingdates"][date_key] == expected_value, f"{date_key}: expected {expected_value!r}, got {body['bookingdates'][date_key]!r}"
+        if expected_status_code == 400:
+            assert new_response.text == "Bad Request"
+        else:
+            body = new_response.json()
+            assert body["bookingdates"][date_key] == expected_value, f"{date_key}: expected {expected_value!r}, got {body['bookingdates'][date_key]!r}"
 
     def test_non_existent_booking_ID(self, base_url, token, existing_booking_id):
 
