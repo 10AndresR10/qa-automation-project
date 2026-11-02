@@ -84,7 +84,8 @@ truncated year, a dropped minus sign, a swapped day and month, or
 - **No length limit** on string fields. 1,100-character values are accepted
   (#5, #10).
 - **PUT acts like PATCH** for the optional `additionalneeds` field. When it
-  is omitted, the old value is kept instead of cleared (#17).
+  is omitted, the old value is kept instead of cleared (#17). This is now
+  asserted by an automated test.
 
 ### Low severity: inconsistent status codes
 
@@ -123,14 +124,16 @@ truncated year, a dropped minus sign, a swapped day and month, or
 3. Handle missing required fields the same way on POST and PUT.
 
 **For the test suite:**
-1. Add an automated assertion for bug #17 (PUT keeps the old
-   `additionalneeds`).
-2. Test a negative `totalprice` on PUT too (bug #21 is only confirmed on
+1. Test a negative `totalprice` on PUT too (bug #21 is only confirmed on
    POST).
-3. Clean up the bookings each test creates (a `yield` fixture), so the suite
+2. Clean up the bookings each test creates (a `yield` fixture), so the suite
    doesn't leave test data on the shared API.
-4. Run the suite in CI (GitHub Actions) on every push. This is Milestone 6.
+3. Run the suite in CI (GitHub Actions) on every push. This is Milestone 6.
+4. Confirm bug #17 with a follow-up GET, not only the PUT response.
 
-Done since the last report: the wrong-data, missing-field, empty-string and
-long-string tests on POST and PUT are now parametrized, one case per field or
-value, so a failure points to the exact input.
+Done since the last report:
+- The wrong-data, missing-field, empty-string and long-string tests on POST
+  and PUT are now parametrized, one case per field or value, so a failure
+  points to the exact input.
+- Bug #17 (PUT keeps the old `additionalneeds`) is now asserted by
+  `test_missing_required_field` (2026-11-02).
