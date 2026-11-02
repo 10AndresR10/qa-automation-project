@@ -1,14 +1,14 @@
 # Test Summary Report — restful-booker API
 
-**Date:** 2026-11-01
+**Date:** 2026-11-02
 **Tester:** Andres Reyes
 **System under test:** [restful-booker](https://restful-booker.herokuapp.com/apidoc/index.html) (public QA practice API)
 **Environment:** Python 3.14.7, pytest 9.1.1, requests 2.34.2, pytest-html 4.2.0, Windows 11
 
 ## 1. Summary
 
-The automated suite ran 157 tests against the GET, POST, PUT and DELETE
-`/booking` endpoints. **All 157 tests passed** in about 77 seconds. Most
+The automated suite ran 159 tests against the GET, POST, PUT and DELETE
+`/booking` endpoints. **All 159 tests passed** in about 80 seconds. Most
 tests are parametrized, so each wrong value or field runs as its own case.
 
 A passing test does not mean the API is correct. Many tests assert the
@@ -27,9 +27,9 @@ is that the API **silently corrupts data** instead of rejecting bad input.
 |---|---|---|---|---|
 | GET `/booking/{id}` | 5 | 5 | 0 | Happy path, malformed / non-existent / whitespace / very large ID |
 | POST `/booking` | 70 | 70 | 0 | Happy path, wrong data types (incl. nested `bookingdates` dates), boundary values, missing fields, empty strings, long strings, equivalence partitioning on dates |
-| PUT `/booking/{id}` | 76 | 76 | 0 | Happy path, wrong data types (incl. nested `bookingdates` dates), non-existent ID, missing fields, long strings, empty strings (incl. nested `bookingdates` dates), missing / invalid token |
+| PUT `/booking/{id}` | 78 | 78 | 0 | Happy path, wrong data types (incl. nested `bookingdates` dates), non-existent ID, missing fields, long strings, empty strings (incl. nested `bookingdates` dates), missing / invalid token |
 | DELETE `/booking/{id}` | 6 | 6 | 0 | Happy path, non-existent / already-deleted / malformed ID, missing / invalid token |
-| **Total** | **157** | **157** | **0** | |
+| **Total** | **159** | **159** | **0** | |
 
 To reproduce the HTML report:
 
@@ -79,8 +79,8 @@ truncated year, a dropped minus sign, a swapped day and month, or
   truthy.
 - **`additionalneeds` has no type check.** Numbers and booleans are stored
   as sent (#15).
-- **No range check on `totalprice`.** POST accepts and stores a negative
-  price such as `-1000` (#21).
+- **No range check on `totalprice`.** POST and PUT both accept and store a
+  negative price such as `-1000` (#21).
 - **No length limit** on string fields. 1,100-character values are accepted
   (#5, #10).
 - **PUT acts like PATCH** for the optional `additionalneeds` field. When it
@@ -124,12 +124,10 @@ truncated year, a dropped minus sign, a swapped day and month, or
 3. Handle missing required fields the same way on POST and PUT.
 
 **For the test suite:**
-1. Test a negative `totalprice` on PUT too (bug #21 is only confirmed on
-   POST).
-2. Clean up the bookings each test creates (a `yield` fixture), so the suite
+1. Clean up the bookings each test creates (a `yield` fixture), so the suite
    doesn't leave test data on the shared API.
-3. Run the suite in CI (GitHub Actions) on every push. This is Milestone 6.
-4. Confirm bug #17 with a follow-up GET, not only the PUT response.
+2. Run the suite in CI (GitHub Actions) on every push. This is Milestone 6.
+3. Confirm bug #17 with a follow-up GET, not only the PUT response.
 
 Done since the last report:
 - The wrong-data, missing-field, empty-string and long-string tests on POST
@@ -137,3 +135,5 @@ Done since the last report:
   points to the exact input.
 - Bug #17 (PUT keeps the old `additionalneeds`) is now asserted by
   `test_missing_required_field` (2026-11-02).
+- A negative `totalprice` is now tested on PUT too, which confirms bug #21
+  there (2026-11-02).

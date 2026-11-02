@@ -19,9 +19,9 @@ Portfolio project for API test automation in Python, built against the
   - Equivalence partitioning on `checkin`/`checkout`: invalid calendar dates (corrupted to `"0NaN-aN-aN"`) and valid dates
 - **PUT /booking/{id}**
   - Happy path: authenticated update of all fields on an existing booking
-  - Wrong data types in the payload
+  - Wrong data types in the payload (including a negative `totalprice`, which is stored as sent — known API bug)
   - Non-existent booking ID (asserts known API bug: returns `405 Method Not Allowed` instead of `404 Not Found`)
-  - Missing required field (each field omitted in turn; asserts `400 Bad Request` for required fields, `200` for the optional `additionalneeds`)
+  - Missing required field (each field omitted in turn; asserts `400 Bad Request` for required fields, and `200` for the optional `additionalneeds`, including the known API bug that the old value is kept instead of cleared)
   - Extremely long string field (each field set to a 1,100-character string in turn; asserts the stored value, including known API bugs: `totalprice` corrupted to `null`, `depositpaid` corrupted to `true`, `checkin`/`checkout` corrupted to `"0NaN-aN-aN"`, instead of being rejected or stored as sent)
   - Empty-string field (each field set to `""` in turn; asserts `400 Bad Request` for `bookingdates`, and for the other fields the stored value, including known API bugs: `totalprice` corrupted to `null`, `depositpaid` corrupted to `false`, instead of being rejected or stored as sent)
 - **DELETE /booking/{id}**
