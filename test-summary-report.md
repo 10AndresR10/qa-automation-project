@@ -7,8 +7,8 @@
 
 ## 1. Summary
 
-The automated suite ran 159 tests against the GET, POST, PUT and DELETE
-`/booking` endpoints. **All 159 tests passed** in about 80 seconds. Most
+The automated suite ran 166 tests against the GET, POST, PUT and DELETE
+`/booking` endpoints. **All 166 tests passed** in about 84 seconds. Most
 tests are parametrized, so each wrong value or field runs as its own case.
 
 A passing test does not mean the API is correct. Many tests assert the
@@ -27,9 +27,9 @@ is that the API **silently corrupts data** instead of rejecting bad input.
 |---|---|---|---|---|
 | GET `/booking/{id}` | 5 | 5 | 0 | Happy path, malformed / non-existent / whitespace / very large ID |
 | POST `/booking` | 70 | 70 | 0 | Happy path, wrong data types (incl. nested `bookingdates` dates), boundary values, missing fields, empty strings, long strings, equivalence partitioning on dates |
-| PUT `/booking/{id}` | 78 | 78 | 0 | Happy path, wrong data types (incl. nested `bookingdates` dates), non-existent ID, missing fields, long strings, empty strings (incl. nested `bookingdates` dates), missing / invalid token |
+| PUT `/booking/{id}` | 85 | 85 | 0 | Happy path, wrong data types (incl. nested `bookingdates` dates), non-existent ID, missing fields, long strings, empty strings (incl. nested `bookingdates` dates), missing / invalid token |
 | DELETE `/booking/{id}` | 6 | 6 | 0 | Happy path, non-existent / already-deleted / malformed ID, missing / invalid token |
-| **Total** | **159** | **159** | **0** | |
+| **Total** | **166** | **166** | **0** | |
 
 To reproduce the HTML report:
 
@@ -71,12 +71,13 @@ truncated year, a dropped minus sign, a swapped day and month, or
   `500` (#24).
 - **POST and PUT validate the same input differently.** For a missing field,
   POST returns `500` and PUT returns `400` (#9). For a wrong type in the whole
-  `bookingdates` object, POST returns `500` and PUT returns `400` (#20). For a
-  number in `firstname` / `lastname`, POST returns `500` and PUT stores it
-  (#18).
+  `bookingdates` object, POST returns `500` and PUT returns `400` (#20). For `0`
+  in `firstname` / `lastname`, PUT stores it, while POST returns `500` for
+  the non-zero numbers it was tested with (#18). PUT also returns `500` for
+  `3.14`, so the split may only affect falsy values.
 - **`firstname` / `lastname`: `true` returns `500`, but `false` is accepted**
   and stored as `false` (#14). The server may only check values that are
-  truthy.
+  truthy: on PUT, `0` is stored too, but `3.14` returns `500`.
 - **`additionalneeds` has no type check.** Numbers and booleans are stored
   as sent (#15).
 - **No range check on `totalprice`.** POST and PUT both accept and store a
@@ -128,6 +129,8 @@ truncated year, a dropped minus sign, a swapped day and month, or
    doesn't leave test data on the shared API.
 2. Run the suite in CI (GitHub Actions) on every push. This is Milestone 6.
 3. Confirm bug #17 with a follow-up GET, not only the PUT response.
+4. Test `0` in `firstname` / `lastname` on POST, to find out whether bug #18
+   is a real POST-vs-PUT split or the truthy-check pattern from bug #14.
 
 Done since the last report:
 - The wrong-data, missing-field, empty-string and long-string tests on POST
@@ -137,3 +140,5 @@ Done since the last report:
   `test_missing_required_field` (2026-11-02).
 - A negative `totalprice` is now tested on PUT too, which confirms bug #21
   there (2026-11-02).
+- `test_put_wrong_data` now covers most of the wrong values POST Test 2
+  tests: 29 cases (2026-11-02).
