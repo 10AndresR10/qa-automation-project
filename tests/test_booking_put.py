@@ -146,24 +146,29 @@ class TestBookingPut:
         assert response.status_code == 405
         assert response.text == "Method Not Allowed"
 
-    @pytest.mark.parametrize("key, expected_status_code", [
-        ("firstname", 400),
-        ("lastname", 400),
-        ("totalprice", 400),
-        ("depositpaid", 400),
-        ("bookingdates", 400),
-        ("additionalneeds", 200),
+    @pytest.mark.parametrize("key, expected_status_code, expected_value", [
+        # expected_value is not checked for 400 responses
+        ("firstname", 400, None),
+        ("lastname", 400, None),
+        ("totalprice", 400, None),
+        ("depositpaid", 400, None),
+        ("bookingdates", 400, None),
+        # Known API bug: PUT should replace the whole booking and clear an omitted optional field, but additionalneeds keeps its old value
+        ("additionalneeds", 200, "Breakfast"),
     ])
-    def test_missing_required_field(self, base_url, token, existing_booking_id, key, expected_status_code):
+    def test_missing_required_field(self, base_url, token, existing_booking_id, key, expected_status_code, expected_value):
 
-        wrong_payload = existing_booking_id["payload"].copy()
-
+        payload = existing_booking_id["payload"]
+        wrong_payload = payload.copy()
         del wrong_payload[key]
-        response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json=wrong_payload, headers= {"Cookie": f"token={token}"})
+        response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json=wrong_payload, headers={"Cookie": f"token={token}"})
         assert response.status_code == expected_status_code, f"Expected {expected_status_code} with {key} missing, but got {response.status_code}"
 
         if expected_status_code == 400:
             assert response.text == "Bad Request"
+        else:
+            body = response.json()
+            assert body[key] == expected_value, f"{key} missing: expected {expected_value!r}, got {body[key]!r}"
 
     @pytest.mark.parametrize("key, expected_status_code, expected_value", [
         ("firstname", 200, LONG_STRING),
