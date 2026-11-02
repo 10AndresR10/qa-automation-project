@@ -50,6 +50,10 @@ class TestBookingPut:
         ("totalprice", 200, True, None),
         # Known API bug: a wrong data type should be rejected, but False corrupts totalprice to null
         ("totalprice", 200, False, None),
+        # A numeric string is coerced to a number (Number("12345")), not a bug
+        ("totalprice", 200, "12345", 12345),
+        # Known API bug: a negative price should be rejected, but totalprice stores it as sent
+        ("totalprice", 200, -1000, -1000),
         # 0 is coerced to false (bool(0)), not a bug
         ("depositpaid", 200, 0, False),
         # A non-empty string is coerced to true (bool("True")), not a bug
