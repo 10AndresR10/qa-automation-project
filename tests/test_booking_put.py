@@ -221,20 +221,27 @@ class TestBookingPut:
             actual = new_response.json()[key]
             assert actual == expected_value, f"{key}: expected {expected_value!r}, got {actual!r}"
 
+    @pytest.mark.parametrize("date_key", ["checkin", "checkout"])
+    @pytest.mark.parametrize("empty_value, expected_status_code, expected_value", [
+        # Known API bug: an empty date should be rejected with 400, but it is stored as an Invalid Date
+        ("", 200, "0NaN-aN-aN"),
+        # Known API bug: a whitespace-only date should be rejected with 400, but it is stored as an Invalid Date
+        (" ", 200, "0NaN-aN-aN"),
+    ])
+    def test_empty_string_nested_bookingdates_field(self, base_url, token, existing_booking_id, date_key, empty_value, expected_status_code, expected_value):
 
-    def test_empty_string_nested_bookingdates_field(self, base_url, token, existing_booking_id):
+        payload = existing_booking_id["payload"]
+        update_payload = payload.copy()
+        update_payload["bookingdates"] = payload["bookingdates"].copy()
+        update_payload["bookingdates"][date_key] = empty_value
 
-        for date_key in ["checkin", "checkout"]:
-
-            update_payload = existing_booking_id["payload"].copy()
-            update_payload["bookingdates"] = existing_booking_id["payload"]["bookingdates"].copy()
-            update_payload["bookingdates"][date_key] = ""
-
-            new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json=update_payload, headers={"Cookie": f"token={token}"})
-
-            assert new_response.status_code == 200
-            assert new_response.json()["bookingdates"][date_key] == "0NaN-aN-aN"
-
+        new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json=update_payload, headers={"Cookie": f"token={token}"})
+        assert new_response.status_code == expected_status_code, f"Expected {expected_status_code} with {date_key}={empty_value!r}, but got {new_response.status_code}"
+        if expected_status_code == 400:
+            assert new_response.text == "Bad Request"
+        else:
+            actual = new_response.json()["bookingdates"][date_key]
+            assert actual == expected_value, f"{date_key}={empty_value!r}: expected {expected_value!r}, got {actual!r}"
 
     def test_no_cookie_auth(self, base_url, existing_booking_id):
 
