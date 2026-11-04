@@ -21,7 +21,7 @@ Portfolio project for API test automation in Python, built against the
   - Happy path: authenticated update of all fields on an existing booking
   - Wrong data types in the payload (including a negative `totalprice`, which is stored as sent — known API bug)
   - Non-existent booking ID (asserts known API bug: returns `405 Method Not Allowed` instead of `404 Not Found`)
-  - Missing required field (each field omitted in turn; asserts `400 Bad Request` for required fields, and `200` for the optional `additionalneeds`, including the known API bug that the old value is kept instead of cleared)
+  - Missing required field (each field omitted in turn; asserts `400 Bad Request` for required fields, and `200` for the optional `additionalneeds`, including the known API bug that the old value is kept instead of cleared, confirmed with a follow-up GET)
   - Extremely long string field (each field set to a 1,100-character string in turn; asserts the stored value, including known API bugs: `totalprice` corrupted to `null`, `depositpaid` corrupted to `true`, `checkin`/`checkout` corrupted to `"0NaN-aN-aN"`, instead of being rejected or stored as sent)
   - Empty-string field (each field set to `""` in turn; asserts `400 Bad Request` for `bookingdates`, and for the other fields the stored value, including known API bugs: `totalprice` corrupted to `null`, `depositpaid` corrupted to `false`, instead of being rejected or stored as sent)
 - **DELETE /booking/{id}**
@@ -63,7 +63,7 @@ pytest tests/ --html=report.html --self-contained-html
 
 ## Test report
 
-The latest run (2026-11-03): **168 tests, 168 passed**. Several tests assert
+The latest run (2026-11-04): **168 tests, 168 passed**. Several tests assert
 known API bugs, so a pass means the API still behaves as documented, not that
 it is bug-free.
 

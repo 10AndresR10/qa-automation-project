@@ -1,6 +1,6 @@
 # Test Summary Report — restful-booker API
 
-**Date:** 2026-11-03
+**Date:** 2026-11-04
 **Tester:** Andres Reyes
 **System under test:** [restful-booker](https://restful-booker.herokuapp.com/apidoc/index.html) (public QA practice API)
 **Environment:** Python 3.14.7, pytest 9.1.1, requests 2.34.2, pytest-html 4.2.0, Windows 11
@@ -8,8 +8,10 @@
 ## 1. Summary
 
 The automated suite ran 168 tests against the GET, POST, PUT and DELETE
-`/booking` endpoints. **All 168 tests passed** in about 83 seconds. Most
-tests are parametrized, so each wrong value or field runs as its own case.
+`/booking` endpoints. **All 168 tests passed** in about 84 seconds in the
+latest run. The full run just before it had one intermittent failure (see
+section 4). Most tests are parametrized, so each wrong value or field runs as
+its own case.
 
 A passing test does not mean the API is correct. Many tests assert the
 API's *actual* behavior, and several of those behaviors are bugs. Each one is
@@ -82,8 +84,8 @@ truncated year, a dropped minus sign, a swapped day and month, or
 - **No length limit** on string fields. 1,100-character values are accepted
   (#5, #10).
 - **PUT acts like PATCH** for the optional `additionalneeds` field. When it
-  is omitted, the old value is kept instead of cleared (#17). This is now
-  asserted by an automated test.
+  is omitted, the old value is kept instead of cleared (#17). An automated
+  test asserts this on the PUT response and with a follow-up GET.
 
 ### Low severity: inconsistent status codes
 
@@ -114,8 +116,13 @@ truncated year, a dropped minus sign, a swapped day and month, or
 - `test_delete_method` (DELETE) failed once in a full run on 2026-11-03: it got
   `403` instead of `201` with a token from `/auth`. The cause is unknown. It
   passed in the next full run and in 10 runs on its own, and 5 direct requests
-  also returned `201`. If it happens again, record the token and the full
-  response, because a valid token getting `403` could be an authentication bug.
+  also returned `201`.
+- `test_put_wrong_data[totalprice-200-False-None]` (PUT) failed once in a full
+  run on 2026-11-04: it got `403` instead of `200` with a token from `/auth`.
+  The cause is unknown. It passed in the next full run and in 10 runs on its
+  own. This is the second `403` with a token from `/auth`, on a different method
+  and test. The token and response body were not recorded, because the tests
+  don't save them. A valid token getting `403` could be an authentication bug.
 - The suite depends on a public API that other people use at the same time,
   so run times and occasional responses can vary.
 
@@ -131,7 +138,8 @@ truncated year, a dropped minus sign, a swapped day and month, or
 1. Clean up the bookings each test creates (a `yield` fixture), so the suite
    doesn't leave test data on the shared API.
 2. Run the suite in CI (GitHub Actions) on every push. This is Milestone 6.
-3. Confirm bug #17 with a follow-up GET, not only the PUT response.
+3. Record the token and the full response when a request with a token from
+   `/auth` gets `403`, so the intermittent failure in section 4 can be diagnosed.
 
 Done since the last report:
 - The wrong-data, missing-field, empty-string and long-string tests on POST
@@ -147,3 +155,5 @@ Done since the last report:
   as on PUT, so bug #18 is not a POST-vs-PUT split (2026-11-03).
 - The PUT and DELETE missing-token and invalid-token tests now use a follow-up
   GET to confirm the update or delete was not applied (2026-11-03).
+- `test_missing_required_field` now confirms bug #17 with a follow-up GET, not
+  only the PUT response (2026-11-04).
