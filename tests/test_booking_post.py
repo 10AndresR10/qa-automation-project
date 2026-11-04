@@ -27,6 +27,8 @@ class TestBookingPost:
         ("firstname", 200, False, False),
         # Known API bug: a wrong data type should be rejected with 400, but the float crashes the server
         ("firstname", 500, 3.14, None),
+        # Known API bug: a wrong data type should be rejected, but firstname stores the 0 value as sent
+        ("firstname", 200, 0, 0),
         # Known API bug: a wrong data type should be rejected with 400, but the number crashes the server
         ("lastname", 500, 12345, None),
         # Known API bug: a wrong data type should be rejected with 400, but True crashes the server
@@ -35,6 +37,8 @@ class TestBookingPost:
         ("lastname", 200, False, False),
         # Known API bug: a wrong data type should be rejected with 400, but the float crashes the server
         ("lastname", 500, 3.14, None),
+        # Known API bug: a wrong data type should be rejected, but lastname stores the 0 value as sent
+        ("lastname", 200, 0, 0),
         # Known API bug: a wrong data type should be rejected, but totalprice is corrupted to null
         ("totalprice", 200, "One", None),
         # A numeric string is coerced to a number (Number("12345")), not a bug
