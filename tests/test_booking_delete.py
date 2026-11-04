@@ -61,14 +61,18 @@ class TestBookingDelete:
 
     def test_invalid_auth_token(self, base_url, existing_booking_id):
 
-        new_response = requests.delete(f"{base_url}/booking/{existing_booking_id['id']}", headers= {"Cookie": f"token=invalidtoken123"})
-
+        new_response = requests.delete(f"{base_url}/booking/{existing_booking_id['id']}", headers= {"Cookie": "token=invalidtoken123"})
         assert new_response.status_code == 403
         assert new_response.text == "Forbidden"
 
+        get_response = requests.get(f"{base_url}/booking/{existing_booking_id['id']}")
+        assert get_response.status_code == 200
 
     def test_no_cookie_auth_token(self, base_url, existing_booking_id):
 
         new_response = requests.delete(f"{base_url}/booking/{existing_booking_id['id']}")
         assert new_response.status_code == 403
         assert new_response.text == "Forbidden"
+
+        get_response = requests.get(f"{base_url}/booking/{existing_booking_id['id']}")
+        assert get_response.status_code == 200

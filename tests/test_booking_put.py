@@ -268,20 +268,29 @@ class TestBookingPut:
 
     def test_no_cookie_auth(self, base_url, existing_booking_id):
 
-        update_payload = existing_booking_id["payload"].copy()
+        payload = existing_booking_id["payload"]
+        update_payload = payload.copy()
         update_payload["firstname"] = "Andres"
-
         put_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json=update_payload)
         assert put_response.status_code == 403
         assert put_response.text == "Forbidden"
 
+        get_response = requests.get(f"{base_url}/booking/{existing_booking_id['id']}")
+        assert get_response.status_code == 200
+        body = get_response.json()
+        assert body["firstname"] == payload["firstname"]
+        
+
     def test_an_invalid_expired_token(self, base_url, existing_booking_id):
 
-        update_payload = existing_booking_id["payload"].copy()
-
+        payload = existing_booking_id["payload"]
+        update_payload = payload.copy()
         update_payload["firstname"] = "Andres"
-
         new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json=update_payload, headers={"Cookie": "token=invalidtoken123"})
-
         assert new_response.status_code == 403
         assert new_response.text == "Forbidden"
+
+        get_response = requests.get(f"{base_url}/booking/{existing_booking_id['id']}")
+        assert get_response.status_code == 200
+        body = get_response.json()
+        assert body["firstname"] == payload["firstname"]
