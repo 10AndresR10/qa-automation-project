@@ -218,12 +218,12 @@ Actual: **200** for all four cases, and the date value comes back corrupted to *
 **Test 8: PUT request with no `Cookie`/auth token**
 (Created a valid booking, then sent a full update payload to it with no `Cookie` header at all.)
 Expected: 403 Forbidden, per API docs.
-Actual: **403 Forbidden** ✅ — matches documented behavior, consistent with DELETE's handling of the same condition (see DELETE Test 6).
+Actual: **403 Forbidden** ✅ — matches documented behavior, consistent with DELETE's handling of the same condition (see DELETE Test 6). A follow-up GET returns 200 with the original `firstname`, so the update was not applied (check added 2026-11-03).
 
 **Test 9: PUT request with an invalid/expired auth token**
 (Created a valid booking, then sent a full update payload to it with a well-formed but bogus `Cookie: token=invalidtoken123` instead of a real token.)
 Expected: 403 Forbidden, per API docs.
-Actual: **403 Forbidden** ✅ — matches documented behavior, consistent with DELETE's handling of the same condition (see DELETE Test 5).
+Actual: **403 Forbidden** ✅ — matches documented behavior, consistent with DELETE's handling of the same condition (see DELETE Test 5). A follow-up GET returns 200 with the original `firstname`, so the update was not applied (check added 2026-11-03).
 
 ---
 
@@ -287,12 +287,12 @@ Actual: **405 Method Not Allowed** ("Method Not Allowed" body) — same handling
 **Test 5: DELETE request with an invalid/expired auth token**
 (Created a valid booking, then sent the DELETE with a well-formed but bogus `Cookie: token=invalidtoken123` instead of a real token.)
 Expected: 403 Forbidden, per API docs.
-Actual: **403 Forbidden** ✅ — matches documented behavior.
+Actual: **403 Forbidden** ✅ — matches documented behavior. A follow-up GET returns 200, so the booking was not deleted (check added 2026-11-03).
 
 **Test 6: DELETE request with no `Cookie`/auth token**
 (Created a valid booking, then sent the DELETE with no `Cookie` header at all.)
 Expected: 403 Forbidden, per API docs.
-Actual: **403 Forbidden** ✅ — matches documented behavior.
+Actual: **403 Forbidden** ✅ — matches documented behavior. A follow-up GET returns 200, so the booking was not deleted (check added 2026-11-03).
 
 ---
 

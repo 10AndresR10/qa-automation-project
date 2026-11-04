@@ -8,7 +8,7 @@
 ## 1. Summary
 
 The automated suite ran 168 tests against the GET, POST, PUT and DELETE
-`/booking` endpoints. **All 168 tests passed** in about 93 seconds. Most
+`/booking` endpoints. **All 168 tests passed** in about 83 seconds. Most
 tests are parametrized, so each wrong value or field runs as its own case.
 
 A passing test does not mean the API is correct. Many tests assert the
@@ -100,7 +100,8 @@ truncated year, a dropped minus sign, a swapped day and month, or
 ### What works as expected
 
 - Create, read, update and delete all work for valid input.
-- PUT and DELETE return `403 Forbidden` with a missing or invalid token.
+- PUT and DELETE return `403 Forbidden` with a missing or invalid token, and a
+  follow-up GET confirms the update or delete was not applied.
 - Valid dates are stored exactly as sent (equivalence partitioning, valid
   partition).
 - `additionalneeds` is correctly optional on both POST and PUT.
@@ -110,6 +111,11 @@ truncated year, a dropped minus sign, a swapped day and month, or
 - `test_already_deleted_booking_ID` (DELETE) failed once in 10 runs on
   2026-09-29, on the response body only. This is most likely an unstable
   response from the shared public API.
+- `test_delete_method` (DELETE) failed once in a full run on 2026-11-03: it got
+  `403` instead of `201` with a token from `/auth`. The cause is unknown. It
+  passed in the next full run and in 10 runs on its own, and 5 direct requests
+  also returned `201`. If it happens again, record the token and the full
+  response, because a valid token getting `403` could be an authentication bug.
 - The suite depends on a public API that other people use at the same time,
   so run times and occasional responses can vary.
 
@@ -139,3 +145,5 @@ Done since the last report:
   tests: 29 cases (2026-11-02).
 - `0` in `firstname` / `lastname` is now tested on POST. It is stored, the same
   as on PUT, so bug #18 is not a POST-vs-PUT split (2026-11-03).
+- The PUT and DELETE missing-token and invalid-token tests now use a follow-up
+  GET to confirm the update or delete was not applied (2026-11-03).
