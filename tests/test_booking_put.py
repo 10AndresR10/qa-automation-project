@@ -187,6 +187,10 @@ class TestBookingPut:
         else:
             body = response.json()
             assert body[key] == expected_value, f"{key} missing: expected {expected_value!r}, got {body[key]!r}"
+            get_response = requests.get(f"{base_url}/booking/{existing_booking_id['id']}")
+            assert get_response.status_code == 200, f"Follow-up GET with {key} missing: expected 200, but got {get_response.status_code}"
+            get_body = get_response.json()
+            assert get_body[key] == expected_value, f"Follow-up GET with {key} missing: expected {expected_value!r}, got {get_body[key]!r}"
 
     @pytest.mark.parametrize("key, expected_status_code, expected_value", [
         ("firstname", 200, LONG_STRING),
