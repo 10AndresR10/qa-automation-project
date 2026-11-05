@@ -9,7 +9,7 @@ class TestBookingDelete:
 
         new_response = requests.delete(f"{base_url}/booking/{existing_booking_id['id']}", headers={"Cookie": f"token={token}"})
 
-        assert new_response.status_code == 201
+        assert new_response.status_code == 201, f"Expected 201, but got {new_response.status_code}, {new_response.text} with these headers {new_response.headers}"
         assert new_response.text == "Created"
 
         new_get = requests.get(f"{base_url}/booking/{existing_booking_id['id']}")

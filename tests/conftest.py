@@ -13,6 +13,7 @@ def token(base_url):
     assert auth_response.status_code == 200
     assert "token" in auth_response.json(), auth_response.text
     token = auth_response.json()["token"]
+    print(token)
     return token
 
 @pytest.fixture

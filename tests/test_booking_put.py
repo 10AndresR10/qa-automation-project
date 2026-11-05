@@ -97,7 +97,7 @@ class TestBookingPut:
         put_payload = existing_booking_id["payload"].copy()
         put_payload[key] = wrong_value
         new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json=put_payload, headers={"Cookie": f"token={token}"})
-        assert new_response.status_code == expected_status_code, f"Expected {expected_status_code} with {key}, but got {new_response.status_code}"
+        assert new_response.status_code == expected_status_code, f"Expected {expected_status_code} with {key}, but got {new_response.status_code}, {new_response.text} with these headers {new_response.headers}"
         if expected_status_code == 400:
             assert new_response.text == "Bad Request"
         elif expected_status_code == 500:
