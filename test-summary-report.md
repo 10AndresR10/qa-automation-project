@@ -8,8 +8,8 @@
 ## 1. Summary
 
 The automated suite ran 168 tests against the GET, POST, PUT and DELETE
-`/booking` endpoints. **All 168 tests passed** in about 84 seconds in the
-latest run. The full run just before it had one intermittent failure (see
+`/booking` endpoints. **All 168 tests passed** in about 87 seconds in the
+latest run. An earlier full run the same day had one intermittent failure (see
 section 4). Most tests are parametrized, so each wrong value or field runs as
 its own case.
 
@@ -122,7 +122,12 @@ truncated year, a dropped minus sign, a swapped day and month, or
   The cause is unknown. It passed in the next full run and in 10 runs on its
   own. This is the second `403` with a token from `/auth`, on a different method
   and test. The token and response body were not recorded, because the tests
-  don't save them. A valid token getting `403` could be an authentication bug.
+  didn't save them at the time. A valid token getting `403` could be an
+  authentication bug.
+- Since 2026-11-04, any failing test that uses the `token` fixture prints the
+  token. `test_delete_method` and `test_put_wrong_data` also show the response
+  body and headers if the status code is wrong. The `403` has not happened again
+  since this was added, so its cause is still unknown.
 - The suite depends on a public API that other people use at the same time,
   so run times and occasional responses can vary.
 
@@ -138,8 +143,8 @@ truncated year, a dropped minus sign, a swapped day and month, or
 1. Clean up the bookings each test creates (a `yield` fixture), so the suite
    doesn't leave test data on the shared API.
 2. Run the suite in CI (GitHub Actions) on every push. This is Milestone 6.
-3. Record the token and the full response when a request with a token from
-   `/auth` gets `403`, so the intermittent failure in section 4 can be diagnosed.
+3. If the intermittent `403` in section 4 appears in another test, add the
+   response body and headers to that test's failure message too.
 
 Done since the last report:
 - The wrong-data, missing-field, empty-string and long-string tests on POST
@@ -157,3 +162,6 @@ Done since the last report:
   GET to confirm the update or delete was not applied (2026-11-03).
 - `test_missing_required_field` now confirms bug #17 with a follow-up GET, not
   only the PUT response (2026-11-04).
+- Failing tests now show the token, and `test_delete_method` and
+  `test_put_wrong_data` also show the response body and headers, to help
+  diagnose the intermittent `403` (2026-11-04).
