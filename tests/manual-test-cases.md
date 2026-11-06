@@ -387,3 +387,23 @@ No test changes since the last run. This run was used to generate the HTML repor
 | **Total** | **47** | **47 passed ✅** |
 
 - Every result matches the Actual values documented above.
+
+---
+
+# Test Data Cleanup — 2026-11-06
+
+**`existing_booking_id` cleanup.** Since 2026-11-05, the fixture in `conftest.py` deletes its booking after each test. It accepts `201` (deleted) and `405` (the test already deleted the booking). In a checked GET run, the DELETE returned `201` and a follow-up GET returned `404`. Most POST tests create their own bookings with `requests.post`, so this cleanup doesn't cover them yet.
+
+**Intermittent `403` and the API reset.** On 2026-11-05, the cleanup DELETE for booking `5326` got `403` right after a PUT with the same token returned `200`. About 23 seconds later, a GET for that booking returned `404`, the same token still got `403`, and the highest booking ID had dropped from `5326` to `282`. This suggests the API reset its data during the test. The reset itself was not observed, so this is strong evidence from one failure, not proof. See section 4 of the [test summary report](../test-summary-report.md).
+
+**How cleanup handles a `403`.** Since 2026-11-06, if the cleanup DELETE gets `403`, the fixture sends a GET:
+- `404` → the booking is already gone, so cleanup passes.
+- Anything else → cleanup fails with an `ERROR`, because a valid token was rejected while the booking still exists.
+
+Checked by temporarily sending a fake token in the cleanup DELETE:
+- `test_get_method` passed, then reported an `ERROR` at teardown: the DELETE got `403` and the GET got `200`.
+- `test_delete_method` passed with no `ERROR`, because the test had already deleted its booking.
+
+The fake token has been removed. A real reset has not gone through this code yet.
+
+**Full suite run — 2026-11-06:** 168 tests, 168 passed, in about 105 seconds. Before this, `test_delete_method` failed once in a run of the GET and DELETE tests. The failure output was not kept, so the cause is unknown. It then passed 6 times in a row (see section 4 of the [test summary report](../test-summary-report.md)).

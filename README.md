@@ -63,7 +63,7 @@ pytest tests/ --html=report.html --self-contained-html
 
 ## Test report
 
-The latest run (2026-11-04): **168 tests, 168 passed**. Several tests assert
+The latest run (2026-11-06): **168 tests, 168 passed**. Several tests assert
 known API bugs, so a pass means the API still behaves as documented, not that
 it is bug-free.
 

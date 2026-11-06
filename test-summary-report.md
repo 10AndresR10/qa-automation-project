@@ -1,6 +1,6 @@
 # Test Summary Report — restful-booker API
 
-**Date:** 2026-11-05
+**Date:** 2026-11-06
 **Tester:** Andres Reyes
 **System under test:** [restful-booker](https://restful-booker.herokuapp.com/apidoc/index.html) (public QA practice API)
 **Environment:** Python 3.14.7, pytest 9.1.1, requests 2.34.2, pytest-html 4.2.0, Windows 11
@@ -8,9 +8,10 @@
 ## 1. Summary
 
 The automated suite ran 168 tests against the GET, POST, PUT and DELETE
-`/booking` endpoints. **All 168 tests passed** in about 106 seconds in the
-latest run. An earlier run of the PUT tests the same day had one cleanup error
-that was most likely caused by the API resetting (see section 4). Most tests are
+`/booking` endpoints. **All 168 tests passed** in about 105 seconds in the
+latest run. A run of the PUT tests on 2026-11-05 had one cleanup error that was
+most likely caused by the API resetting, and `test_delete_method` failed once on
+2026-11-06 for a reason that wasn't recorded (see section 4). Most tests are
 parametrized, so each wrong value or field runs as its own case.
 
 A passing test does not mean the API is correct. Many tests assert the
@@ -125,6 +126,12 @@ truncated year, a dropped minus sign, a swapped day and month, or
   - `test_empty_string_field[totalprice-200-None]` (PUT) passed on 2026-11-05,
     but its cleanup reported an error: the DELETE for booking `5326` got `403`
     instead of `201` or `405`.
+- **Unexplained failure on 2026-11-06.** `test_delete_method` failed once in a
+  run of the GET and DELETE tests, and that run took about 15 seconds instead of
+  about 8. The failure output was not kept, so the status code is unknown and this
+  may not be the same `403`. The test then passed 6 times in a row, and the next
+  full run passed. The highest booking ID dropped from `1333` to `264` in the
+  8 minutes around it, which fits another reset but doesn't prove one.
 - **Evidence for the reset, from the 2026-11-05 error.** The PUT in that test
   returned `200`, so the token was valid, but the cleanup DELETE with the same
   token got `403`. About 23 seconds later, a GET for booking `5326` returned
@@ -137,12 +144,18 @@ truncated year, a dropped minus sign, a swapped day and month, or
   `token` fixture prints the token. `test_delete_method`, `test_put_wrong_data`
   and the cleanup in `existing_booking_id` also show the response body and
   headers if the status code is wrong.
+- **How cleanup handles a reset.** Since 2026-11-06, if the cleanup DELETE gets
+  `403`, the fixture sends a GET. A `404` means the booking is already gone, so
+  cleanup passes. Anything else fails, because a valid token was rejected while
+  the booking still exists. Both paths were checked by temporarily using a fake
+  token. A real reset has not gone through this code yet.
 - **Known limitation.** A reset during a test can make that test fail, and the
   suite can't prevent this on a shared public API. Re-run the test before
   treating a `403` with a valid token as a bug.
 - The suite depends on a public API that other people use at the same time,
   so run times and occasional responses can vary. Cleanup also adds a request
-  after most tests: the latest full run took about 106 seconds, up from about 87.
+  after most tests: the latest full run took about 105 seconds, up from about 87
+  before cleanup was added.
 
 ## 5. Recommendations
 
@@ -153,14 +166,12 @@ truncated year, a dropped minus sign, a swapped day and month, or
 3. Handle missing required fields the same way on POST and PUT.
 
 **For the test suite:**
-1. Make the cleanup in `existing_booking_id` handle a reset: if the DELETE gets
-   `403`, send a GET, and don't fail if the booking is already gone (`404`).
-2. Clean up the bookings the POST tests create. Most of them use their own
+1. Clean up the bookings the POST tests create. Most of them use their own
    `requests.post` calls, so the `existing_booking_id` cleanup doesn't cover them.
-3. Run the suite in CI (GitHub Actions) on every push. This is Milestone 6.
-4. Confirm the reset by checking the highest booking ID regularly, to see whether
+2. Run the suite in CI (GitHub Actions) on every push. This is Milestone 6.
+3. Confirm the reset by checking the highest booking ID regularly, to see whether
    it drops at a steady interval.
-5. If the intermittent `403` in section 4 appears in another test, add the
+4. If the intermittent `403` in section 4 appears in another test, add the
    response body and headers to that test's failure message too.
 
 Done since the last report:
@@ -185,3 +196,5 @@ Done since the last report:
 - The `existing_booking_id` fixture now deletes its booking after each test. In
   a checked GET run, the DELETE returned `201` and a follow-up GET returned `404`
   (2026-11-05).
+- The cleanup no longer fails when a `403` is caused by the booking already being
+  gone, which is what an API reset would do (2026-11-06).
