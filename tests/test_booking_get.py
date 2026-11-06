@@ -3,9 +3,7 @@ import requests
 class TestBookingGet:
     def test_get_method(self, base_url, existing_booking_id):
         response = requests.get(f"{base_url}/booking/{existing_booking_id['id']}")
-
         assert response.status_code == 200
-
         body = response.json()
         assert "firstname" in body
         assert "lastname" in body
@@ -16,6 +14,7 @@ class TestBookingGet:
         assert "checkin" in body["bookingdates"]
         assert "checkout" in body["bookingdates"]
         assert "additionalneeds" in body
+        
 
     def test_get_malformed_id(self, base_url):
         response = requests.get(f"{base_url}/booking/abc")
