@@ -17,7 +17,7 @@ def token(base_url):
     return token
 
 @pytest.fixture
-def existing_booking_id(base_url):
+def existing_booking_id(base_url, token):
     payload = {
         "firstname": "John",
         "lastname": "Smith",
@@ -33,7 +33,9 @@ def existing_booking_id(base_url):
     response = requests.post(f"{base_url}/booking", json=payload)
     assert response.status_code == 200
     body = response.json()
-    return {"id": body["bookingid"], "payload": payload, "body": body}
+    yield {"id": body["bookingid"], "payload": payload, "body": body}
+    delete_request = requests.delete(f"{base_url}/booking/{body['bookingid']}", headers={"Cookie": f"token={token}"})
+    assert delete_request.status_code in [201, 405], f"Cleanup of booking {body['bookingid']}: expected 201 or 405, but got {delete_request.status_code}, {delete_request.text} with these headers {delete_request.headers}"
 
 @pytest.fixture
 def non_existent_booking_id(base_url):
