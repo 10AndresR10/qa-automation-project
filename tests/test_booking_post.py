@@ -1,5 +1,6 @@
 import requests
 import pytest
+from helpers import delete_booking
 
 
 class TestBookingPost:
@@ -90,20 +91,9 @@ class TestBookingPost:
         # Known API bug: a wrong data type should be rejected, but additionalneeds stores the float as sent
         ("additionalneeds", 200, 3.14, 3.14),
     ])
-    def test_wrong_data_type(self, base_url, key, expected_status_code, wrong_value, expected_value):
+    def test_wrong_data_type(self, base_url, key, expected_status_code, wrong_value, expected_value, existing_booking_id, token):
 
-        payload = {
-            "firstname": "Andres",
-            "lastname": "Reyes",
-            "totalprice": 10,
-            "depositpaid": True,
-            "bookingdates": {
-                "checkin": "2026-01-01",
-                "checkout": "2027-01-01"
-            },
-            "additionalneeds": "Breakfast"
-        }
-
+        payload = existing_booking_id['payload']
         new_payload = payload.copy()
         new_payload[key] = wrong_value
         response = requests.post(f"{base_url}/booking", json=new_payload)
@@ -112,6 +102,7 @@ class TestBookingPost:
             assert response.text == "Internal Server Error"
         else:
             body = response.json()
+            delete_booking(base_url, token, body["bookingid"])
             assert body["booking"][key] == expected_value, f"{key}: expected {expected_value!r}, got {body['booking'][key]!r}"
 
     @pytest.mark.parametrize("date_key", ["checkin", "checkout"])
