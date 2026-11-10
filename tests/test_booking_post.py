@@ -135,26 +135,19 @@ class TestBookingPost:
         # Known API bug: a wrong data type should be rejected, but the float is read as milliseconds since 1970-01-01
         (200, 3.14, "1970-01-01"),
         ])
-    def test_wrong_data_type_nested_dict(self, base_url, date_key, wrong_value, expected_value, expected_status_code):
+    def test_wrong_data_type_nested_dict(self, base_url, date_key, wrong_value, expected_value, expected_status_code, existing_booking_id, token):
 
-        payload = {
-            "firstname": "Andres",
-            "lastname": "Reyes",
-            "totalprice": 10,
-            "depositpaid": True,
-            "bookingdates": {
-                "checkin": "2026-01-01",
-                "checkout": "2027-01-01"
-            },
-            "additionalneeds": "Breakfast"
-        }
-        payload["bookingdates"][date_key] = wrong_value
-        response = requests.post(f"{base_url}/booking", json=payload)
+        payload = existing_booking_id["payload"]
+        post_payload = payload.copy()
+        post_payload["bookingdates"] = payload["bookingdates"].copy()
+        post_payload["bookingdates"][date_key] = wrong_value
+        response = requests.post(f"{base_url}/booking", json=post_payload)
         assert response.status_code == expected_status_code, f"Expected {expected_status_code} with {date_key}, but got {response.status_code}"
         if expected_status_code == 500:
             assert response.text == "Internal Server Error"
         else:
             body = response.json()
+            delete_booking(base_url, token, body['bookingid'])
             assert body["booking"]["bookingdates"][date_key] == expected_value, f"{date_key}: expected {expected_value!r}, got {body['booking']['bookingdates'][date_key]!r}"
 
     @pytest.mark.parametrize("key, expected_status_code",[
