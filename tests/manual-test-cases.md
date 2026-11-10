@@ -51,6 +51,7 @@ Actual:
 - ✅ **Test status: REFACTORED (2026-10-26).** `test_wrong_data_type` used to loop over the fields with one `if key == ...` block per field, so the first failing field stopped the test and hid the rest, and some inputs (`totalprice: "123456"`, `depositpaid: 123456`, `additionalneeds: 123456`) only had their status code checked. It is now parametrized like PUT Test 2: each row holds the field, the wrong value, the expected status and the expected stored value — 33 cases in total, all passing. The `500` cases assert the `"Internal Server Error"` body, and every `200` case compares the stored value with the row's expected value. Every row has its own comment: `# Known API bug` for bugs, and a short note for coercions that aren't bugs.
 - ~~⚠️ **Coverage gap (2026-10-26):** the old loop also sent 6-digit numeric strings (`275759`, `275760`, `275761`) to the nested `bookingdates.checkin`/`checkout` fields (see bug #16). The refactor removed these cases, because the table only replaces whole top-level fields. They are planned as their own parametrized boundary-value test; until then, bug #16 isn't covered by an automated test.~~ **Resolved (2026-10-28):** these cases are back in their own boundary-value test (see Test 2b).
 - ✅ **Test status: EXTENDED (2026-11-03).** Added `0` for `firstname`/`lastname` — 35 cases in total, all passing. Re-confirmed the same day by sending the requests directly: the raw JSON stores the number `0`, not `false`. This shows bug #18 is not a POST-vs-PUT split.
+- ✅ **Test status: UPDATED (2026-11-08).** Each `200` case now deletes the booking it created, with `delete_booking` from `tests/helpers.py` (moved there from `conftest.py` so tests can call it). The delete runs before the stored-value assert, so the booking is removed even when the assert fails. The `500` cases create no booking, so they have nothing to delete. The test now takes its base payload from the `existing_booking_id` fixture, so each case also creates and deletes one booking it doesn't use. All 35 cases pass.
 
 **Test 2b: POST request with a wrong data type in a nested `bookingdates` date**
 (Sent a valid payload with `bookingdates.checkin` replaced by a wrong value — leaving `checkout` valid — then repeated for `checkout`. Each date was set to the numbers `275759`, `275760` and `275761`; the numeric strings `"275759"`, `"275760"` and `"275761"`; the word `"Tomorrow"`; `True` and `False`; `None` (JSON `null`); the negative-year string `"-2026-01-21"`; an empty list `[]`; and the float `3.14`. `275760` is the largest year a JavaScript `Date` can hold.)
@@ -67,6 +68,7 @@ Actual: **200** for every case except `None`, and the date is never stored as se
 - The results are the same for `checkin` and `checkout`.
 - ✅ **Test status: AUTOMATED (2026-10-28).** `test_wrong_data_type_nested_dict` is parametrized over the date field (`checkin`/`checkout`) and the values above. Each row holds the wrong value, the expected status and the expected stored date, and has its own `# Known API bug` comment. Both asserts have failure messages that name the date field.
 - ✅ **Test status: EXTENDED (2026-10-28).** Added the `"Tomorrow"`, `True`, `False`, `None`, `"-2026-01-21"`, `[]` and `3.14` cases — 13 values and 26 cases in total, all passing. The test has a new `500` branch that asserts the `"Internal Server Error"` body, like `test_wrong_data_type`.
+- ✅ **Test status: UPDATED (2026-11-09).** Each `200` case now deletes the booking it created, before the stored-date assert, the same as Test 2. The test now takes its base payload from the `existing_booking_id` fixture instead of its own dict. It copies both the payload and the nested `bookingdates` dict before changing a date. A plain `.copy()` only copies the outer dict, so without the second copy the wrong value would also change the fixture's payload. All 26 cases pass. Using the fixture means each case also creates and deletes one booking it doesn't use.
 - Not covered yet: the number boundary of `Date` (`8.64e15` milliseconds, the latest date it can hold, and `8.64e15 + 1`, which should give an Invalid Date).
 
 **Test 3: POST request with a missing required field**
@@ -407,3 +409,16 @@ Checked by temporarily sending a fake token in the cleanup DELETE:
 The fake token has been removed. A real reset has not gone through this code yet.
 
 **Full suite run — 2026-11-06:** 168 tests, 168 passed, in about 105 seconds. Before this, `test_delete_method` failed once in a run of the GET and DELETE tests. The failure output was not kept, so the cause is unknown. It then passed 6 times in a row (see section 4 of the [test summary report](../test-summary-report.md)).
+
+# Test Data Cleanup — 2026-11-09
+
+**POST test cleanup.** `delete_booking` now lives in `tests/helpers.py`, so tests can call it as well as the `existing_booking_id` fixture. POST Test 2 (2026-11-08) and Test 2b (2026-11-09) now delete the bookings they create. These POST tests still leave their bookings on the API:
+- `test_missing_required_field` (only the `additionalneeds` case, which returns `200`)
+- `test_empty_string_field`
+- `test_extremely_long_string`
+- `test_equivalence_partitioning_checkvariables`
+- `test_equivalence_partitioning_valid_dates`
+
+**Full suite run — 2026-11-09:** 168 tests, 168 passed, in about 159 seconds (up from about 105 on 2026-11-06; see section 4 of the [test summary report](../test-summary-report.md)).
+
+**Token no longer printed.** The `token` fixture stopped printing the token on 2026-11-09. The assert in the fixture already shows the `/auth` response body when no token comes back, and a printed token would end up in CI logs once the suite runs on GitHub Actions.

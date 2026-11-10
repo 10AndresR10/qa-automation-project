@@ -1,6 +1,6 @@
 # Test Summary Report — restful-booker API
 
-**Date:** 2026-11-06
+**Date:** 2026-11-09
 **Tester:** Andres Reyes
 **System under test:** [restful-booker](https://restful-booker.herokuapp.com/apidoc/index.html) (public QA practice API)
 **Environment:** Python 3.14.7, pytest 9.1.1, requests 2.34.2, pytest-html 4.2.0, Windows 11
@@ -8,7 +8,7 @@
 ## 1. Summary
 
 The automated suite ran 168 tests against the GET, POST, PUT and DELETE
-`/booking` endpoints. **All 168 tests passed** in about 105 seconds in the
+`/booking` endpoints. **All 168 tests passed** in about 159 seconds in the
 latest run. A run of the PUT tests on 2026-11-05 had one cleanup error that was
 most likely caused by the API resetting, and `test_delete_method` failed once on
 2026-11-06 for a reason that wasn't recorded (see section 4). Most tests are
@@ -140,10 +140,11 @@ truncated year, a dropped minus sign, a swapped day and month, or
   reset itself was not observed, so this is strong evidence from one failure, not
   proof. The token and response details were not recorded for the first two
   failures.
-- **What failures show now.** Since 2026-11-04, any failing test that uses the
-  `token` fixture prints the token. `test_delete_method`, `test_put_wrong_data`
-  and the cleanup in `existing_booking_id` also show the response body and
-  headers if the status code is wrong.
+- **What failures show now.** `test_delete_method`, `test_put_wrong_data` and
+  the cleanup in `delete_booking` show the response body and headers if the
+  status code is wrong. From 2026-11-04 to 2026-11-09, failing tests that used
+  the `token` fixture also printed the token. That print was removed so the
+  token doesn't end up in CI logs.
 - **How cleanup handles a reset.** Since 2026-11-06, if the cleanup DELETE gets
   `403`, the fixture sends a GET. A `404` means the booking is already gone, so
   cleanup passes. Anything else fails, because a valid token was rejected while
@@ -153,9 +154,13 @@ truncated year, a dropped minus sign, a swapped day and month, or
   suite can't prevent this on a shared public API. Re-run the test before
   treating a `403` with a valid token as a bug.
 - The suite depends on a public API that other people use at the same time,
-  so run times and occasional responses can vary. Cleanup also adds a request
-  after most tests: the latest full run took about 105 seconds, up from about 87
-  before cleanup was added.
+  so run times and occasional responses can vary. Cleanup also adds requests
+  to most tests: the latest full run took about 159 seconds, up from about 105
+  on 2026-11-06 and about 87 before cleanup was added. Part of the latest
+  increase comes from the two POST wrong-data tests. Each of their 61 cases now
+  creates and deletes an unused `existing_booking_id` booking, and the `200`
+  cases also delete their own booking. API speed varies too, so the exact
+  share is not known.
 
 ## 5. Recommendations
 
@@ -166,8 +171,10 @@ truncated year, a dropped minus sign, a swapped day and month, or
 3. Handle missing required fields the same way on POST and PUT.
 
 **For the test suite:**
-1. Clean up the bookings the POST tests create. Most of them use their own
-   `requests.post` calls, so the `existing_booking_id` cleanup doesn't cover them.
+1. Finish cleaning up the bookings the POST tests create. The wrong-data tests
+   now delete theirs, but `test_missing_required_field` (`additionalneeds`
+   case), `test_empty_string_field`, `test_extremely_long_string` and both
+   equivalence-partitioning tests still leave about 5 bookings per run.
 2. Run the suite in CI (GitHub Actions) on every push. This is Milestone 6.
 3. Confirm the reset by checking the highest booking ID regularly, to see whether
    it drops at a steady interval.
@@ -198,3 +205,7 @@ Done since the last report:
   (2026-11-05).
 - The cleanup no longer fails when a `403` is caused by the booking already being
   gone, which is what an API reset would do (2026-11-06).
+- `delete_booking` moved to `tests/helpers.py`, and `test_wrong_data_type`
+  (POST) now deletes the bookings it creates (2026-11-08).
+- `test_wrong_data_type_nested_dict` (POST) now deletes the bookings it
+  creates, and the `token` fixture no longer prints the token (2026-11-09).
