@@ -158,7 +158,7 @@ class TestBookingPost:
         ("bookingdates", 500),
         ("additionalneeds", 200),
     ])
-    def test_missing_required_field(self, base_url, key, expected_status_code):
+    def test_missing_required_field(self, base_url, key, expected_status_code, token):
 
         payload = {
             "firstname": "Andres",
@@ -178,6 +178,10 @@ class TestBookingPost:
 
         if expected_status_code == 500:
             assert response.text == "Internal Server Error"
+        else:
+            body = response.json()
+            delete_booking(base_url, token, body['bookingid'])
+            assert key not in body["booking"], f"{key} was not sent, but the API stored {key}={body['booking'][key]!r}"
 
     def test_empty_string_field(self, base_url):
 
