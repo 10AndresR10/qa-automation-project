@@ -171,10 +171,10 @@ truncated year, a dropped minus sign, a swapped day and month, or
 3. Handle missing required fields the same way on POST and PUT.
 
 **For the test suite:**
-1. Finish cleaning up the bookings the POST tests create. The wrong-data tests
-   now delete theirs, but `test_missing_required_field` (`additionalneeds`
-   case), `test_empty_string_field`, `test_extremely_long_string` and both
-   equivalence-partitioning tests still leave about 5 bookings per run.
+1. Finish cleaning up the bookings the POST tests create. The wrong-data and
+   missing-field tests now delete theirs, but `test_empty_string_field`,
+   `test_extremely_long_string` and both equivalence-partitioning tests still
+   leave 4 bookings per run.
 2. Run the suite in CI (GitHub Actions) on every push. This is Milestone 6.
 3. Confirm the reset by checking the highest booking ID regularly, to see whether
    it drops at a steady interval.
@@ -209,3 +209,6 @@ Done since the last report:
   (POST) now deletes the bookings it creates (2026-11-08).
 - `test_wrong_data_type_nested_dict` (POST) now deletes the bookings it
   creates, and the `token` fixture no longer prints the token (2026-11-09).
+- `test_missing_required_field` (POST) now deletes the booking from its
+  `additionalneeds` case and asserts that `additionalneeds` is not stored. Before
+  this, that case only checked the status code (2026-11-09).

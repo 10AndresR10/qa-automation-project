@@ -76,6 +76,7 @@ Expected (assumed): 400 Bad Request for any omitted field
 Actual:
 - Omitting `firstname`, `lastname`, `totalprice`, `depositpaid`, or `bookingdates` → **500 Internal Server Error**
 - Omitting `additionalneeds` → **200** (field is optional, not required — original assumption was wrong to treat it as required)
+- ✅ **Test status: UPDATED (2026-11-09).** The `additionalneeds` case now deletes the booking it created, then asserts that `additionalneeds` is not in the stored booking (`body["booking"]`). Before this, the test only checked the status code for this case. A direct request the same day showed the API leaves the key out of the response when it isn't sent. The failure path was checked by temporarily keeping `additionalneeds` in the payload: the test failed with `additionalneeds was not sent, but the API stored additionalneeds='Breakfast'`, and the booking was still deleted, because the delete runs before the assert. The `500` cases create no booking. All 6 cases pass.
 
 **Test 4: POST request with empty string field(s)**
 (Every field set to `""` in a single request: `firstname`, `lastname`, `totalprice`, `depositpaid`, `bookingdates.checkin`, `bookingdates.checkout`, `additionalneeds`.)
@@ -412,8 +413,7 @@ The fake token has been removed. A real reset has not gone through this code yet
 
 # Test Data Cleanup — 2026-11-09
 
-**POST test cleanup.** `delete_booking` now lives in `tests/helpers.py`, so tests can call it as well as the `existing_booking_id` fixture. POST Test 2 (2026-11-08) and Test 2b (2026-11-09) now delete the bookings they create. These POST tests still leave their bookings on the API:
-- `test_missing_required_field` (only the `additionalneeds` case, which returns `200`)
+**POST test cleanup.** `delete_booking` now lives in `tests/helpers.py`, so tests can call it as well as the `existing_booking_id` fixture. POST Test 2 (2026-11-08), Test 2b (2026-11-09) and Test 3 (2026-11-09, the `additionalneeds` case) now delete the bookings they create. These POST tests still leave their bookings on the API:
 - `test_empty_string_field`
 - `test_extremely_long_string`
 - `test_equivalence_partitioning_checkvariables`
