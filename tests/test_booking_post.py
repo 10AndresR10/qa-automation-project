@@ -210,27 +210,33 @@ class TestBookingPost:
         assert booking["bookingdates"]["checkout"] == "0NaN-aN-aN", f"checkout: expected '0NaN-aN-aN', got {booking['bookingdates']['checkout']!r}"
         assert booking["additionalneeds"] == "", f"additionalneeds: expected '', got {booking['additionalneeds']!r}"
 
-    def test_extremely_long_string(self, base_url):
+    @pytest.mark.parametrize("key, string_long, expected_status_code",[
+        ("firstname", "Andres"*100, 200),
+        ("lastname", "Reyes"*100, 200),
+        ("additionalneeds", "Breakfast"*100, 200),
+        ])
+    def test_extremely_long_string(self, base_url, key, string_long, expected_status_code, token):
 
         payload = {
-            "firstname": "Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres Andres AndresAndres Andres Andres Andres Andres AndresAndres Andres Andres Andres Andres AndresAndres Andres Andres Andres Andres AndresAndres Andres Andres Andres Andres AndresAndres Andres Andres Andres Andres Andres",
-            "lastname": "Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes Reyes",
+            "firstname": "Andres",
+            "lastname": "Reyes",
             "totalprice": 10,
             "depositpaid": False,
             "bookingdates": {
                 "checkin": "2026-01-01",
                 "checkout": "2026-01-01"
             },
-            "additionalneeds": "Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast Breakfast "
+            "additionalneeds": "Breakfast"
         }
 
-        response = requests.post(f"{base_url}/booking", json= payload)
-        assert response.status_code == 200
+        post_payload = payload.copy()
+        post_payload[key] = string_long
+        response = requests.post(f"{base_url}/booking", json= post_payload)
+        assert response.status_code == expected_status_code, f"Expected {expected_status_code} with a {len(string_long)}-character {key}, but got {response.status_code}"
         body = response.json()
-
-        assert body["booking"]["firstname"] == payload["firstname"]
-        assert body["booking"]["lastname"] == payload["lastname"]
-        assert body["booking"]["additionalneeds"] == payload["additionalneeds"]
+        delete_booking(base_url,token, body["bookingid"])
+        stored = body["booking"][key]
+        assert stored == string_long, f"{key}: expected the {len(string_long)}-character string as sent, got {len(str(stored))} characters starting with {str(stored)[:30]!r}"
 
     def test_equivalence_partitioning_checkvariables(self, base_url):
 
