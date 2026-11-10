@@ -183,7 +183,7 @@ class TestBookingPost:
             delete_booking(base_url, token, body['bookingid'])
             assert key not in body["booking"], f"{key} was not sent, but the API stored {key}={body['booking'][key]!r}"
 
-    def test_empty_string_field(self, base_url):
+    def test_empty_string_field(self, base_url, token):
 
         payload = {
             "firstname": "",
@@ -198,16 +198,17 @@ class TestBookingPost:
         }
 
         response = requests.post(f"{base_url}/booking", json=payload)
-        assert response.status_code == 200
+        assert response.status_code == 200, f"Expected 200 with every field empty, but got {response.status_code}"
         body = response.json()
-
-        assert body["booking"]["firstname"] == ""
-        assert body["booking"]["lastname"] == ""
-        assert body["booking"]["totalprice"] is None
-        assert body["booking"]["depositpaid"] is False
-        assert body["booking"]["bookingdates"]["checkin"] == "0NaN-aN-aN"
-        assert body["booking"]["bookingdates"]["checkout"] == "0NaN-aN-aN"
-        assert body["booking"]["additionalneeds"] == ""
+        delete_booking(base_url, token, body['bookingid'])
+        booking = body["booking"]
+        assert booking["firstname"] == "", f"firstname: expected '', got {booking['firstname']!r}"
+        assert booking["lastname"] == "", f"lastname: expected '', got {booking['lastname']!r}"
+        assert booking["totalprice"] is None, f"totalprice: expected None, got {booking['totalprice']!r}"
+        assert booking["depositpaid"] is False, f"depositpaid: expected False, got {booking['depositpaid']!r}"
+        assert booking["bookingdates"]["checkin"] == "0NaN-aN-aN", f"checkin: expected '0NaN-aN-aN', got {booking['bookingdates']['checkin']!r}"
+        assert booking["bookingdates"]["checkout"] == "0NaN-aN-aN", f"checkout: expected '0NaN-aN-aN', got {booking['bookingdates']['checkout']!r}"
+        assert booking["additionalneeds"] == "", f"additionalneeds: expected '', got {booking['additionalneeds']!r}"
 
     def test_extremely_long_string(self, base_url):
 
