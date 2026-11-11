@@ -269,7 +269,13 @@ class TestBookingPost:
         delete_booking(base_url, token, body["bookingid"])
         assert body["booking"]["bookingdates"][date_key] == expected_result, f"{date_key}={date_value!r}: expected {expected_result!r}, got {body['booking']['bookingdates'][date_key]!r}"
 
-    def test_equivalence_partitioning_valid_dates(self, base_url):
+    @pytest.mark.parametrize("date_key", ["checkin", "checkout"])
+    @pytest.mark.parametrize("date_value, expected_status_code, expected_result", [
+        ("2026-11-10", 200, "2026-11-10"),
+        ("2026-11-11", 200, "2026-11-11"),
+        ("2028-02-29", 200, "2028-02-29"),
+        ])
+    def test_equivalence_partitioning_valid_dates(self, base_url, token, date_key, date_value, expected_status_code, expected_result):
 
         payload = {
             "firstname": "Andres",
@@ -277,15 +283,16 @@ class TestBookingPost:
             "totalprice": 10,
             "depositpaid": True,
             "bookingdates": {
-                "checkin": "2026-12-01",
-                "checkout": "2026-12-10"
+                "checkin": "2026-01-01",
+                "checkout": "2029-01-01"
             },
             "additionalneeds": "Breakfast"
         }
 
+        payload["bookingdates"][date_key] = date_value
         response = requests.post(f"{base_url}/booking", json=payload)
-        assert response.status_code == 200
+        assert response.status_code == expected_status_code, f"Expected {expected_status_code} with {date_key}={date_value!r}, but got {response.status_code}"
         body = response.json()
-
-        assert body["booking"]["bookingdates"]["checkin"] == "2026-12-01"
-        assert body["booking"]["bookingdates"]["checkout"] == "2026-12-10"
+        delete_booking(base_url, token, body["bookingid"])
+        store = body["booking"]["bookingdates"][date_key]
+        assert store == expected_result, f"{date_key}={date_value!r}: expected {expected_result!r}, got {store!r}"
