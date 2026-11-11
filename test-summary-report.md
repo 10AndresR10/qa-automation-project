@@ -61,9 +61,11 @@ The client has no way to know the data is wrong.
 | `checkin` / `checkout` as a number or boolean (e.g. `275760`) | `"1970-01-01"` (read as milliseconds) | #22 |
 | `checkin` / `checkout` as a negative year (`"-2026-01-21"`) | `"2026-01-21"` (minus sign dropped) | #23 |
 | `checkin` / `checkout` as `"01/02/2026"` | `"2026-01-02"` (read as month/day) | #25 |
+| `checkin` / `checkout` as an impossible day (`"2026-02-29"`) | `"2026-03-01"` (rolled over into the next month) | #26 |
 
 The rows where the stored value looks normal are the most dangerous: a
-truncated year, a dropped minus sign, a swapped day and month, or
+truncated year, a dropped minus sign, a swapped day and month, a rolled-over
+day, or
 `depositpaid` flipped to `true` are all hard to notice.
 
 ### Medium severity: missing or inconsistent validation
