@@ -238,7 +238,16 @@ class TestBookingPost:
         stored = body["booking"][key]
         assert stored == string_long, f"{key}: expected the {len(string_long)}-character string as sent, got {len(str(stored))} characters starting with {str(stored)[:30]!r}"
 
-    def test_equivalence_partitioning_checkvariables(self, base_url):
+    @pytest.mark.parametrize("date_key",["checkin", "checkout"])
+    @pytest.mark.parametrize("date_value, expected_status_code, expected_result",[
+        # Known API bug: an invalid date should be rejected with 400, but month 13 is stored as an Invalid Date
+        ("2099-13-01", 200, "0NaN-aN-aN"),
+        # Known API bug: an invalid date should be rejected with 400, but day 32 is stored as an Invalid Date
+        ("2026-12-32", 200, "0NaN-aN-aN"),
+        # Known API bug: an invalid date should be rejected with 400, but 29 February in a non-leap year rolls over to 1 March
+        ("2026-02-29", 200, "2026-03-01"),
+        ])
+    def test_equivalence_partitioning_checkvariables(self, base_url, date_key, date_value, expected_status_code, expected_result, token):
 
         payload = {
             "firstname": "Andres",
@@ -246,18 +255,19 @@ class TestBookingPost:
             "totalprice": 10,
             "depositpaid": True,
             "bookingdates": {
-                "checkin": "2099-13-01",
-                "checkout": "1999-01-32"
+                "checkin": "2099-12-01",
+                "checkout": "2999-01-31"
             },
             "additionalneeds": "Breakfast"
         }
 
-        response = requests.post(f"{base_url}/booking", json= payload)
-        assert response.status_code == 200
+        post_payload = payload.copy()
+        post_payload["bookingdates"][date_key] = date_value
+        response = requests.post(f"{base_url}/booking", json= post_payload)
+        assert response.status_code == expected_status_code, f"Expected {expected_status_code} with {date_key}={date_value!r}, but got {response.status_code}"
         body = response.json()
-
-        assert body["booking"]["bookingdates"]["checkin"] == "0NaN-aN-aN"
-        assert body["booking"]["bookingdates"]["checkout"] == "0NaN-aN-aN"
+        delete_booking(base_url, token, body["bookingid"])
+        assert body["booking"]["bookingdates"][date_key] == expected_result, f"{date_key}={date_value!r}: expected {expected_result!r}, got {body['booking']['bookingdates'][date_key]!r}"
 
     def test_equivalence_partitioning_valid_dates(self, base_url):
 
