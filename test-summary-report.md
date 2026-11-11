@@ -1,15 +1,17 @@
 # Test Summary Report — restful-booker API
 
-**Date:** 2026-11-09
+**Date:** 2026-11-11
 **Tester:** Andres Reyes
 **System under test:** [restful-booker](https://restful-booker.herokuapp.com/apidoc/index.html) (public QA practice API)
 **Environment:** Python 3.14.7, pytest 9.1.1, requests 2.34.2, pytest-html 4.2.0, Windows 11
 
 ## 1. Summary
 
-The automated suite ran 168 tests against the GET, POST, PUT and DELETE
-`/booking` endpoints. **All 168 tests passed** in about 159 seconds in the
-latest run. A run of the PUT tests on 2026-11-05 had one cleanup error that was
+The automated suite ran 180 tests against the GET, POST, PUT and DELETE
+`/booking` endpoints. **179 of 180 tests passed** in about 178 seconds in the
+latest run. The one failure, `test_empty_string_field[lastname-200-]` (PUT),
+passed in 5 re-runs right after, and its status code wasn't recorded (see
+section 4). A run of the PUT tests on 2026-11-05 had one cleanup error that was
 most likely caused by the API resetting, and `test_delete_method` failed once on
 2026-11-06 for a reason that wasn't recorded (see section 4). Most tests are
 parametrized, so each wrong value or field runs as its own case.
@@ -29,10 +31,10 @@ is that the API **silently corrupts data** instead of rejecting bad input.
 | Endpoint | Tests | Passed | Failed | Areas covered |
 |---|---|---|---|---|
 | GET `/booking/{id}` | 5 | 5 | 0 | Happy path, malformed / non-existent / whitespace / very large ID |
-| POST `/booking` | 72 | 72 | 0 | Happy path, wrong data types (incl. nested `bookingdates` dates), boundary values, missing fields, empty strings, long strings, equivalence partitioning on dates |
-| PUT `/booking/{id}` | 85 | 85 | 0 | Happy path, wrong data types (incl. nested `bookingdates` dates), non-existent ID, missing fields, long strings, empty strings (incl. nested `bookingdates` dates), missing / invalid token |
+| POST `/booking` | 84 | 84 | 0 | Happy path, wrong data types (incl. nested `bookingdates` dates), boundary values, missing fields, empty strings, long strings, equivalence partitioning on dates (incl. a non-leap-year and a leap-year 29 February) |
+| PUT `/booking/{id}` | 85 | 84 | 1 | Happy path, wrong data types (incl. nested `bookingdates` dates), non-existent ID, missing fields, long strings, empty strings (incl. nested `bookingdates` dates), missing / invalid token |
 | DELETE `/booking/{id}` | 6 | 6 | 0 | Happy path, non-existent / already-deleted / malformed ID, missing / invalid token |
-| **Total** | **168** | **168** | **0** | |
+| **Total** | **180** | **179** | **1** | |
 
 To reproduce the HTML report:
 
@@ -134,6 +136,13 @@ day, or
   may not be the same `403`. The test then passed 6 times in a row, and the next
   full run passed. The highest booking ID dropped from `1333` to `264` in the
   8 minutes around it, which fits another reset but doesn't prove one.
+- **Unexplained failure on 2026-11-11.** `test_empty_string_field[lastname-200-]`
+  (PUT) failed once in a full run, on the status-code assert. That assert has no
+  failure message, and the rest of the output was not kept, so the status code
+  is unknown. All 6 cases of the test then passed in 5 re-runs in a row. The
+  highest booking ID was `550` right after, much lower than the IDs seen on
+  2026-11-09 (around `3353`), so a reset happened at some point in between, but
+  there is no evidence that it happened during this test.
 - **Evidence for the reset, from the 2026-11-05 error.** The PUT in that test
   returned `200`, so the token was valid, but the cleanup DELETE with the same
   token got `403`. About 23 seconds later, a GET for booking `5326` returned
@@ -157,9 +166,9 @@ day, or
   treating a `403` with a valid token as a bug.
 - The suite depends on a public API that other people use at the same time,
   so run times and occasional responses can vary. Cleanup also adds requests
-  to most tests: the latest full run took about 159 seconds, up from about 105
-  on 2026-11-06 and about 87 before cleanup was added. Part of the latest
-  increase comes from the two POST wrong-data tests. Each of their 61 cases now
+  to most tests: the latest full run took about 178 seconds with 180 tests, up
+  from about 159 seconds with 168 tests on 2026-11-09, about 105 on 2026-11-06
+  and about 87 before cleanup was added. Part of the increase comes from the two POST wrong-data tests. Each of their 61 cases now
   creates and deletes an unused `existing_booking_id` booking, and the `200`
   cases also delete their own booking. API speed varies too, so the exact
   share is not known.
@@ -173,15 +182,17 @@ day, or
 3. Handle missing required fields the same way on POST and PUT.
 
 **For the test suite:**
-1. Finish cleaning up the bookings the POST tests create. The wrong-data and
-   missing-field tests now delete theirs, but `test_empty_string_field`,
-   `test_extremely_long_string` and both equivalence-partitioning tests still
-   leave 4 bookings per run.
+1. Add a fixture that only returns a valid booking payload. The POST
+   wrong-data tests use `existing_booking_id` just for its payload, so each of
+   their 61 cases creates and deletes a booking it never uses (see section 4).
+   The same payload dict is also repeated in several POST tests.
 2. Run the suite in CI (GitHub Actions) on every push. This is Milestone 6.
 3. Confirm the reset by checking the highest booking ID regularly, to see whether
    it drops at a steady interval.
 4. If the intermittent `403` in section 4 appears in another test, add the
-   response body and headers to that test's failure message too.
+   response body and headers to that test's failure message too. The PUT
+   `test_empty_string_field` status-code assert is the next candidate: it failed
+   on 2026-11-11 without showing the status code.
 
 Done since the last report:
 - The wrong-data, missing-field, empty-string and long-string tests on POST
@@ -214,3 +225,13 @@ Done since the last report:
 - `test_missing_required_field` (POST) now deletes the booking from its
   `additionalneeds` case and asserts that `additionalneeds` is not stored. Before
   this, that case only checked the status code (2026-11-09).
+- `test_empty_string_field` (POST) now deletes its booking, and its asserts
+  have failure messages that name the field (2026-11-09).
+- `test_extremely_long_string` (POST) is now parametrized, one field per case
+  at 500–900 characters, and deletes its bookings (2026-11-10).
+- Both POST equivalence-partitioning tests are now parametrized over
+  `checkin`/`checkout` and delete their bookings. The invalid-date test found
+  bug #26 (`"2026-02-29"` rolls over to `"2026-03-01"`), and the valid-date test
+  confirms the real leap day `"2028-02-29"` is stored as sent (2026-11-11).
+- Every POST test now cleans up the bookings it creates, so the POST cleanup
+  recommendation from the last report is done (2026-11-11).

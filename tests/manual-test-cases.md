@@ -87,11 +87,13 @@ Actual: **200** — the API accepts empty strings with no validation, and silent
 - 🐛 **Bug:** `depositpaid: ""` comes back coerced to boolean **`false`** instead of being stored as sent or rejected — the same corruption as PUT Test 6 (bug #13).
 - 🐛 **Bug:** `checkin: ""` and `checkout: ""` both come back corrupted to **`"0NaN-aN-aN"`** — the same coercion as bug #6, and the same result PUT gives for an empty nested date (PUT Test 7).
 - ✅ **Test status: FIXED (2026-10-12).** `test_empty_string_field` used to send `totalprice`/`depositpaid` as `False` and both dates as `"0NaN-aN-aN"`, so only 3 of the 7 fields were actually empty strings, and `depositpaid` was never asserted. Every field is now `""`, and all seven stored values are asserted. The old payload also showed that the API accepts the string `"0NaN-aN-aN"` verbatim as a date; that behavior is no longer covered by an automated test.
+- ✅ **Test status: UPDATED (2026-11-09).** The test now deletes its booking right after reading the response, before the seven stored-value asserts. Every assert now has a failure message that names the field (`totalprice: expected None, got 0`), and the status-code assert has one too. The test passes.
 
 **Test 5: POST request with an extremely long string in a field (e.g. "firstname")**
 (Tested with `firstname` at 288 chars, `lastname` at 299 chars, `additionalneeds` at 360 chars.)
 Expected (assumed): 400 Bad Request, per API documentation
 Actual: **200** — all three long strings are accepted and echoed back unmodified (no truncation, no length validation).
+- ✅ **Test status: REFACTORED (2026-11-10).** `test_extremely_long_string` used to send all three long strings in one request. It is now parametrized like PUT Test 5: each field gets its long string in turn, while the other fields keep normal values — `firstname` at 600 characters (`"Andres" * 100`), `lastname` at 500 (`"Reyes" * 100`) and `additionalneeds` at 900 (`"Breakfast" * 100`). That is 3 cases, all passing, and the strings are longer than before. Each case deletes its booking before the stored-value assert. The failure messages show the string length and the first 30 characters of what was stored, so a long value doesn't fill the output.
 
 **Test 6: POST request — equivalence partitioning on checkin/checkout dates**
 (Tested with an out-of-range invalid pair: `checkin: "2099-13-01"` (month 13), `checkout: "1999-01-32"` (day 32).)
@@ -105,6 +107,7 @@ Actual: **200** — both invalid dates are silently coerced to `"0NaN-aN-aN"` in
 (Tested with a well-formed pair where `checkout` genuinely comes after `checkin`: `checkin: "2026-12-01"`, `checkout: "2026-12-10"`.)
 Expected: 200, both dates returned as sent.
 Actual: **200** ✅ — both dates are returned unmodified, as expected. Confirmed by `test_equivalence_partitioning_valid_dates`. This completes the equivalence-partitioning pair for Test 6 (see bug #7, now resolved).
+- ✅ **Test status: REFACTORED AND EXTENDED (2026-11-11).** `test_equivalence_partitioning_valid_dates` is now parametrized like Test 6: the date field (`checkin`/`checkout`) and the valid value are separate decorators. The values are `"2026-11-10"`, `"2026-11-11"` and the leap day `"2028-02-29"` — 6 cases in total, all passing, and each date is stored as sent. The leap day is the valid counterpart of Test 6's `"2026-02-29"`: the same day and month, valid in a leap year and rolled over in a non-leap year (bug #26). The base booking is `checkin: "2026-01-01"`, `checkout: "2029-01-01"`, so every test value falls between them and each case is a valid booking whichever field it replaces. Each case deletes its booking before the stored-date assert, and both asserts have failure messages that name the date field and the value sent.
 
 ---
 
@@ -245,7 +248,7 @@ PUT method test cases are complete — all planned cases (happy path, wrong data
 2. **Non-standard/invalid IDs on GET return 404, not 400.** Malformed IDs, whitespace IDs, and oversized IDs are all treated the same as "not found" — there is no separate bad-request path for unparseable IDs.
 3. **`additionalneeds` is optional**, not required — omitting it returns 200, unlike every other field.
 4. **Empty strings and malformed data are silently accepted (200)** instead of rejected, and in the case of `totalprice` sent as an empty string or a boolean, the value is **corrupted to `None`** rather than validated or rejected. This is a data-integrity bug, not just a missing-validation issue. Confirmed via both the empty-string test (`totalprice: ""`, see POST Test 4, which also confirms `depositpaid: ""` → `false` and empty dates → `"0NaN-aN-aN"` on POST) and the wrong-data-type test (`totalprice: True`/`False`, see POST Test 2) — `totalprice` is corrupted to `None` for either boolean value, unlike `firstname`/`lastname`'s `True`-vs-`False` split (bug #14).
-5. **No length limit on string fields.** Fields up to 360 characters (`firstname`, `lastname`, `additionalneeds`) are accepted and returned as-is with a 200 — no server-side length validation.
+5. **No length limit on string fields.** Fields up to 360 characters (`firstname`, `lastname`, `additionalneeds`) are accepted and returned as-is with a 200 — no server-side length validation. Since 2026-11-10, `test_extremely_long_string` tests each field on its own at 500–900 characters, with the same result.
 6. **Invalid calendar dates are silently coerced, not rejected.** An out-of-range date like `checkin: "2099-13-01"` (month 13) or `checkout: "1999-01-32"` (day 32) returns 200, and both values come back corrupted to `"0NaN-aN-aN"` rather than the request being rejected — consistent with bug #4.
 7. ~~**Still untested:** the valid-range half of Test 6 (checkout genuinely after checkin) has not been automated yet.~~ **Resolved:** the valid-range half of Test 6 is now automated in `test_equivalence_partitioning_valid_dates` (see Test 6b) — the API correctly returns the dates as sent for a well-formed, chronologically-ordered pair.
 8. **PUT against a non-existent ID returns 405, not 404.** Unlike GET, which treats any unresolvable ID as "not found" (see bug #2), PUT against a well-formed but non-existent ID returns `405 Method Not Allowed` — inconsistent handling of the same underlying condition (no matching record) across methods.
@@ -426,3 +429,9 @@ The fake token has been removed. A real reset has not gone through this code yet
 **Full suite run — 2026-11-09:** 168 tests, 168 passed, in about 159 seconds (up from about 105 on 2026-11-06; see section 4 of the [test summary report](../test-summary-report.md)).
 
 **Token no longer printed.** The `token` fixture stopped printing the token on 2026-11-09. The assert in the fixture already shows the `/auth` response body when no token comes back, and a printed token would end up in CI logs once the suite runs on GitHub Actions.
+
+# Test Data Cleanup — 2026-11-11
+
+**POST test cleanup is finished.** `test_empty_string_field` (2026-11-09), `test_extremely_long_string` (2026-11-10) and both equivalence-partitioning tests (2026-11-11) now delete the bookings they create, so every POST test cleans up after itself. In every test the delete runs before the stored-value asserts, so a failing assert doesn't leave a booking behind.
+
+**Full suite run — 2026-11-11:** 180 tests, 179 passed, 1 failed, in about 178 seconds. The count went up from 168 because `test_extremely_long_string` (1 → 3 cases) and both equivalence-partitioning tests (1 → 6 cases each) are now parametrized. The failure was `test_empty_string_field[lastname-200-]` (PUT), on its status-code assert. The status code was not recorded, and the test passed in 5 re-runs right after (see section 4 of the [test summary report](../test-summary-report.md)).

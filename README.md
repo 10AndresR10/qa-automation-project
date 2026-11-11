@@ -15,8 +15,8 @@ Portfolio project for API test automation in Python, built against the
   - Boundary values on numeric `checkin`/`checkout` strings (`275759`, `275760`, `275761`): up to `275760` the year is truncated to its last four digits (e.g. `"275759"` → `"5759-01-01"`); above it the date is corrupted to `"0NaN-aN-aN"`
   - Missing required field (each field omitted in turn; `additionalneeds` is optional, and the test checks it is not stored when omitted)
   - Empty-string field(s) (asserts known API bugs: `totalprice` corrupted to `null`, `depositpaid` corrupted to `false`, `checkin`/`checkout` corrupted to `"0NaN-aN-aN"`, instead of being rejected or stored as sent)
-  - Extremely long string in the string fields
-  - Equivalence partitioning on `checkin`/`checkout`: invalid calendar dates (corrupted to `"0NaN-aN-aN"`) and valid dates
+  - Extremely long string field (each string field set to a 500–900-character string in turn; stored as sent, so there is no length limit)
+  - Equivalence partitioning on `checkin`/`checkout`: invalid calendar dates (month 13 and day 32 corrupted to `"0NaN-aN-aN"`; known API bug: `"2026-02-29"` in a non-leap year silently rolled over to `"2026-03-01"`) and valid dates, including the leap day `"2028-02-29"`
 - **PUT /booking/{id}**
   - Happy path: authenticated update of all fields on an existing booking
   - Wrong data types in the payload (including a negative `totalprice`, which is stored as sent — known API bug)
@@ -63,7 +63,9 @@ pytest tests/ --html=report.html --self-contained-html
 
 ## Test report
 
-The latest run (2026-11-09): **168 tests, 168 passed**. Several tests assert
+The latest run (2026-11-11): **180 tests, 179 passed, 1 failed**. The failure
+was a PUT test that passed in 5 re-runs right after, most likely the shared
+API being unstable (see the report, section 4). Several tests assert
 known API bugs, so a pass means the API still behaves as documented, not that
 it is bug-free.
 
