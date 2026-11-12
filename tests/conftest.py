@@ -17,8 +17,8 @@ def token(base_url):
     return token
 
 @pytest.fixture
-def existing_booking_id(base_url, token):
-    payload = {
+def original_payload():
+    return {
         "firstname": "John",
         "lastname": "Smith",
         "totalprice": 150,
@@ -30,11 +30,13 @@ def existing_booking_id(base_url, token):
         "additionalneeds": "Breakfast"
     }
 
-    response = requests.post(f"{base_url}/booking", json=payload)
+@pytest.fixture
+def existing_booking_id(base_url, token, original_payload):
+    response = requests.post(f"{base_url}/booking", json=original_payload)
     assert response.status_code == 200
     body = response.json()
     id_body = body["bookingid"]
-    yield {"id": id_body, "payload": payload, "body": body}
+    yield {"id": id_body, "payload": original_payload, "body": body}
     delete_booking(base_url, token, id_body)
 
 @pytest.fixture
