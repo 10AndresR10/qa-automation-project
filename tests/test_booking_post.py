@@ -97,7 +97,7 @@ class TestBookingPost:
         new_payload = payload.copy()
         new_payload[key] = wrong_value
         response = requests.post(f"{base_url}/booking", json=new_payload)
-        assert response.status_code == expected_status_code, f"Expected {expected_status_code} with {key}, but got {response.status_code}"
+        assert response.status_code == expected_status_code, f"Expected {expected_status_code} with {key}={wrong_value!r}, but got {response.status_code}, {response.text} with these headers {response.headers}"
         if expected_status_code == 500:
             assert response.text == "Internal Server Error"
         else:
@@ -142,7 +142,7 @@ class TestBookingPost:
         post_payload["bookingdates"] = payload["bookingdates"].copy()
         post_payload["bookingdates"][date_key] = wrong_value
         response = requests.post(f"{base_url}/booking", json=post_payload)
-        assert response.status_code == expected_status_code, f"Expected {expected_status_code} with {date_key}, but got {response.status_code}"
+        assert response.status_code == expected_status_code, f"Expected {expected_status_code} with {date_key}={wrong_value!r}, but got {response.status_code}, {response.text} with these headers {response.headers}"
         if expected_status_code == 500:
             assert response.text == "Internal Server Error"
         else:
@@ -174,7 +174,7 @@ class TestBookingPost:
 
         del payload[key]
         response = requests.post(f"{base_url}/booking", json=payload)
-        assert response.status_code == expected_status_code, f"Expected {expected_status_code} with {key} missing, but got {response.status_code}"
+        assert response.status_code == expected_status_code, f"Expected {expected_status_code} with {key} missing, but got {response.status_code}, {response.text} with these headers {response.headers}"
 
         if expected_status_code == 500:
             assert response.text == "Internal Server Error"
@@ -198,7 +198,7 @@ class TestBookingPost:
         }
 
         response = requests.post(f"{base_url}/booking", json=payload)
-        assert response.status_code == 200, f"Expected 200 with every field empty, but got {response.status_code}"
+        assert response.status_code == 200, f"Expected 200 with every field empty, but got {response.status_code}, {response.text} with these headers {response.headers}"
         body = response.json()
         delete_booking(base_url, token, body['bookingid'])
         booking = body["booking"]
@@ -232,7 +232,7 @@ class TestBookingPost:
         post_payload = payload.copy()
         post_payload[key] = string_long
         response = requests.post(f"{base_url}/booking", json= post_payload)
-        assert response.status_code == expected_status_code, f"Expected {expected_status_code} with a {len(string_long)}-character {key}, but got {response.status_code}"
+        assert response.status_code == expected_status_code, f"Expected {expected_status_code} with a {len(string_long)}-character {key}, but got {response.status_code}, {response.text} with these headers {response.headers}"
         body = response.json()
         delete_booking(base_url,token, body["bookingid"])
         stored = body["booking"][key]
@@ -264,7 +264,7 @@ class TestBookingPost:
         post_payload = payload.copy()
         post_payload["bookingdates"][date_key] = date_value
         response = requests.post(f"{base_url}/booking", json= post_payload)
-        assert response.status_code == expected_status_code, f"Expected {expected_status_code} with {date_key}={date_value!r}, but got {response.status_code}"
+        assert response.status_code == expected_status_code, f"Expected {expected_status_code} with {date_key}={date_value!r}, but got {response.status_code}, {response.text} with these headers {response.headers}"
         body = response.json()
         delete_booking(base_url, token, body["bookingid"])
         assert body["booking"]["bookingdates"][date_key] == expected_result, f"{date_key}={date_value!r}: expected {expected_result!r}, got {body['booking']['bookingdates'][date_key]!r}"
@@ -291,7 +291,7 @@ class TestBookingPost:
 
         payload["bookingdates"][date_key] = date_value
         response = requests.post(f"{base_url}/booking", json=payload)
-        assert response.status_code == expected_status_code, f"Expected {expected_status_code} with {date_key}={date_value!r}, but got {response.status_code}"
+        assert response.status_code == expected_status_code, f"Expected {expected_status_code} with {date_key}={date_value!r}, but got {response.status_code}, {response.text} with these headers {response.headers}"
         body = response.json()
         delete_booking(base_url, token, body["bookingid"])
         store = body["booking"]["bookingdates"][date_key]
