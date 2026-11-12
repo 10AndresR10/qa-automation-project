@@ -91,10 +91,9 @@ class TestBookingPost:
         # Known API bug: a wrong data type should be rejected, but additionalneeds stores the float as sent
         ("additionalneeds", 200, 3.14, 3.14),
     ])
-    def test_wrong_data_type(self, base_url, key, expected_status_code, wrong_value, expected_value, existing_booking_id, token):
+    def test_wrong_data_type(self, base_url, key, expected_status_code, wrong_value, expected_value, original_payload, token):
 
-        payload = existing_booking_id['payload']
-        new_payload = payload.copy()
+        new_payload = original_payload.copy()
         new_payload[key] = wrong_value
         response = requests.post(f"{base_url}/booking", json=new_payload)
         assert response.status_code == expected_status_code, f"Expected {expected_status_code} with {key}={wrong_value!r}, but got {response.status_code}, {response.text} with these headers {response.headers}"
@@ -135,11 +134,10 @@ class TestBookingPost:
         # Known API bug: a wrong data type should be rejected, but the float is read as milliseconds since 1970-01-01
         (200, 3.14, "1970-01-01"),
         ])
-    def test_wrong_data_type_nested_dict(self, base_url, date_key, wrong_value, expected_value, expected_status_code, existing_booking_id, token):
+    def test_wrong_data_type_nested_dict(self, base_url, date_key, wrong_value, expected_value, expected_status_code, original_payload, token):
 
-        payload = existing_booking_id["payload"]
-        post_payload = payload.copy()
-        post_payload["bookingdates"] = payload["bookingdates"].copy()
+        post_payload = original_payload.copy()
+        post_payload["bookingdates"] = original_payload["bookingdates"].copy()
         post_payload["bookingdates"][date_key] = wrong_value
         response = requests.post(f"{base_url}/booking", json=post_payload)
         assert response.status_code == expected_status_code, f"Expected {expected_status_code} with {date_key}={wrong_value!r}, but got {response.status_code}, {response.text} with these headers {response.headers}"
