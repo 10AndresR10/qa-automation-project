@@ -189,10 +189,6 @@ day, or
 2. Run the suite in CI (GitHub Actions) on every push. This is Milestone 6.
 3. Confirm the reset by checking the highest booking ID regularly, to see whether
    it drops at a steady interval.
-4. Add the actual status code, response body and headers to the status-code
-   failure messages in the POST, GET and DELETE tests too, as the PUT tests now
-   do. Then, if the intermittent `403` in section 4 appears there, the output
-   shows what the API returned.
 
 Done since the last report:
 - The wrong-data, missing-field, empty-string and long-string tests on POST
@@ -240,3 +236,8 @@ Done since the last report:
   on 2026-11-11 without showing its status code, so this was the next candidate.
   `test_put_wrong_data_nested_dict` also shows the date value that was sent
   (2026-11-11).
+- Every status-code assert in the POST, GET and DELETE tests now does the same,
+  so if the intermittent `403` in section 4 appears in any test, the output
+  shows what the API returned. The two POST wrong-data tests also show the
+  value that was sent, and the double-delete test says whether the first or
+  second DELETE failed (2026-11-12).
