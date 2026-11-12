@@ -147,7 +147,7 @@ class TestBookingPut:
         put_payload["bookingdates"] = payload["bookingdates"].copy()
         put_payload["bookingdates"][date_key] = wrong_value
         new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json=put_payload, headers={"Cookie": f"token={token}"})
-        assert new_response.status_code == expected_status_code, f"Expected {expected_status_code} with {date_key}, but got {new_response.status_code}"
+        assert new_response.status_code == expected_status_code, f"Expected {expected_status_code} with {date_key}={wrong_value!r}, but got {new_response.status_code}, {new_response.text} with these headers {new_response.headers}"
         if expected_status_code == 400:
             assert new_response.text == "Bad Request"
         else:
@@ -158,10 +158,10 @@ class TestBookingPut:
 
         booking_id = existing_booking_id["id"]
         new_response = requests.delete(f"{base_url}/booking/{booking_id}", headers={"Cookie": f"token={token}"})
-        assert new_response.status_code == 201
+        assert new_response.status_code == 201, f"Setup DELETE of booking {booking_id}: expected 201, but got {new_response.status_code}, {new_response.text} with these headers {new_response.headers}"
         response = requests.put(f"{base_url}/booking/{booking_id}", json= existing_booking_id["payload"], headers= {"Cookie": f"token={token}"})
         # Known API bug: a missing booking should return 404 Not Found, but the API returns 405
-        assert response.status_code == 405
+        assert response.status_code == 405, f"PUT on deleted booking {booking_id}: expected 405, but got {response.status_code}, {response.text} with these headers {response.headers}"
         assert response.text == "Method Not Allowed"
 
     @pytest.mark.parametrize("key, expected_status_code, expected_value", [
@@ -215,7 +215,7 @@ class TestBookingPut:
             long_string_payload[key] = LONG_STRING
 
         new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json=long_string_payload, headers={"Cookie": f"token={token}"})
-        assert new_response.status_code == expected_status_code
+        assert new_response.status_code == expected_status_code, f"Expected {expected_status_code} with {key} set to a {len(LONG_STRING)}-character string, but got {new_response.status_code}, {new_response.text} with these headers {new_response.headers}"
         actual = new_response.json()[key]
 
         if key == "bookingdates":
@@ -240,7 +240,7 @@ class TestBookingPut:
         empty_request = existing_booking_id["payload"].copy()
         empty_request[key] = ""
         new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json=empty_request, headers={"Cookie": f"token={token}"})
-        assert new_response.status_code == expected_status_code
+        assert new_response.status_code == expected_status_code, f"Expected {expected_status_code} with {key}='', but got {new_response.status_code}, {new_response.text} with these headers {new_response.headers}"
 
         if expected_status_code == 400:
             assert new_response.text == "Bad Request"
@@ -276,11 +276,11 @@ class TestBookingPut:
         update_payload = payload.copy()
         update_payload["firstname"] = "Andres"
         put_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json=update_payload)
-        assert put_response.status_code == 403
+        assert put_response.status_code == 403, f"PUT without a token: expected 403, but got {put_response.status_code}, {put_response.text} with these headers {put_response.headers}"
         assert put_response.text == "Forbidden"
 
         get_response = requests.get(f"{base_url}/booking/{existing_booking_id['id']}")
-        assert get_response.status_code == 200
+        assert get_response.status_code == 200, f"Follow-up GET of booking {existing_booking_id['id']}: expected 200, but got {get_response.status_code}, {get_response.text} with these headers {get_response.headers}"
         body = get_response.json()
         assert body["firstname"] == payload["firstname"]
         
@@ -291,10 +291,10 @@ class TestBookingPut:
         update_payload = payload.copy()
         update_payload["firstname"] = "Andres"
         new_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json=update_payload, headers={"Cookie": "token=invalidtoken123"})
-        assert new_response.status_code == 403
+        assert new_response.status_code == 403, f"PUT with an invalid token: expected 403, but got {new_response.status_code}, {new_response.text} with these headers {new_response.headers}"
         assert new_response.text == "Forbidden"
 
         get_response = requests.get(f"{base_url}/booking/{existing_booking_id['id']}")
-        assert get_response.status_code == 200
+        assert get_response.status_code == 200, f"Follow-up GET of booking {existing_booking_id['id']}: expected 200, but got {get_response.status_code}, {get_response.text} with these headers {get_response.headers}"
         body = get_response.json()
         assert body["firstname"] == payload["firstname"]
