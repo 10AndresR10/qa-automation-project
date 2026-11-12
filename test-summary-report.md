@@ -189,10 +189,10 @@ day, or
 2. Run the suite in CI (GitHub Actions) on every push. This is Milestone 6.
 3. Confirm the reset by checking the highest booking ID regularly, to see whether
    it drops at a steady interval.
-4. If the intermittent `403` in section 4 appears in another test, add the
-   response body and headers to that test's failure message too. The PUT
-   `test_empty_string_field` status-code assert is the next candidate: it failed
-   on 2026-11-11 without showing the status code.
+4. Add the actual status code, response body and headers to the status-code
+   failure messages in the POST, GET and DELETE tests too, as the PUT tests now
+   do. Then, if the intermittent `403` in section 4 appears there, the output
+   shows what the API returned.
 
 Done since the last report:
 - The wrong-data, missing-field, empty-string and long-string tests on POST
@@ -235,3 +235,8 @@ Done since the last report:
   confirms the real leap day `"2028-02-29"` is stored as sent (2026-11-11).
 - Every POST test now cleans up the bookings it creates, so the POST cleanup
   recommendation from the last report is done (2026-11-11).
+- Every PUT status-code assert now shows the actual status code, the response
+  body and the headers in its failure message. `test_empty_string_field` failed
+  on 2026-11-11 without showing its status code, so this was the next candidate.
+  `test_put_wrong_data_nested_dict` also shows the date value that was sent
+  (2026-11-11).
