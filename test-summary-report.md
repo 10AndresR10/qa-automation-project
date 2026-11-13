@@ -183,8 +183,7 @@ day, or
 3. Handle missing required fields the same way on POST and PUT.
 
 **For the test suite:**
-1. Run the suite in CI (GitHub Actions) on every push. This is Milestone 6.
-2. Confirm the reset by checking the highest booking ID regularly, to see whether
+1. Confirm the reset by checking the highest booking ID regularly, to see whether
    it drops at a steady interval.
 
 Done since the last report:
@@ -244,3 +243,8 @@ Done since the last report:
   their own copy of the payload. `test_equivalence_partitioning_valid_dates`
   sets a wider date range so every check-in stays before check-out
   (2026-11-12).
+- The suite now runs in GitHub Actions (`.github/workflows/tests.yml`) on every
+  push, every pull request and on demand, with Python 3.14 and the pinned
+  requirements. The HTML report is kept as a downloadable artifact, even when
+  tests fail. The first CI run passed 180 of 180 tests in about 76 seconds
+  (2026-11-12). This completes Milestone 6.

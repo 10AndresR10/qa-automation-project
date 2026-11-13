@@ -1,5 +1,7 @@
 # QA Automation Project — API Test Automation Suite
 
+[![API Tests](https://github.com/10AndresR10/qa-automation-project/actions/workflows/tests.yml/badge.svg)](https://github.com/10AndresR10/qa-automation-project/actions/workflows/tests.yml)
+
 Portfolio project for API test automation in Python, built against the
 [restful-booker API](https://restful-booker.herokuapp.com/apidoc/index.html)
 (a public API made for QA practice).
@@ -60,6 +62,14 @@ Generate an HTML report:
 ```bash
 pytest tests/ --html=report.html --self-contained-html
 ```
+
+## Continuous integration
+
+A GitHub Actions workflow ([`.github/workflows/tests.yml`](.github/workflows/tests.yml))
+runs the full suite on every push and pull request, and can be started by hand
+from the Actions tab. Each run uploads the HTML report as a `test-report`
+artifact, even when tests fail. The first CI run (2026-11-12) passed all 180
+tests.
 
 ## Test report
 
