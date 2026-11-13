@@ -156,22 +156,10 @@ class TestBookingPost:
         ("bookingdates", 500),
         ("additionalneeds", 200),
     ])
-    def test_missing_required_field(self, base_url, key, expected_status_code, token):
+    def test_missing_required_field(self, base_url, key, expected_status_code, token, original_payload):
 
-        payload = {
-            "firstname": "Andres",
-            "lastname": "Reyes",
-            "totalprice": 10,
-            "depositpaid": True,
-            "bookingdates": {
-                "checkin": "2026-01-01",
-                "checkout": "2027-01-01"
-            },
-            "additionalneeds": "Breakfast"
-        }
-
-        del payload[key]
-        response = requests.post(f"{base_url}/booking", json=payload)
+        del original_payload[key]
+        response = requests.post(f"{base_url}/booking", json=original_payload)
         assert response.status_code == expected_status_code, f"Expected {expected_status_code} with {key} missing, but got {response.status_code}, {response.text} with these headers {response.headers}"
 
         if expected_status_code == 500:
@@ -213,23 +201,10 @@ class TestBookingPost:
         ("lastname", "Reyes"*100, 200),
         ("additionalneeds", "Breakfast"*100, 200),
         ])
-    def test_extremely_long_string(self, base_url, key, string_long, expected_status_code, token):
+    def test_extremely_long_string(self, base_url, key, string_long, expected_status_code, token, original_payload):
 
-        payload = {
-            "firstname": "Andres",
-            "lastname": "Reyes",
-            "totalprice": 10,
-            "depositpaid": False,
-            "bookingdates": {
-                "checkin": "2026-01-01",
-                "checkout": "2026-01-01"
-            },
-            "additionalneeds": "Breakfast"
-        }
-
-        post_payload = payload.copy()
-        post_payload[key] = string_long
-        response = requests.post(f"{base_url}/booking", json= post_payload)
+        original_payload[key] = string_long
+        response = requests.post(f"{base_url}/booking", json=original_payload)
         assert response.status_code == expected_status_code, f"Expected {expected_status_code} with a {len(string_long)}-character {key}, but got {response.status_code}, {response.text} with these headers {response.headers}"
         body = response.json()
         delete_booking(base_url,token, body["bookingid"])
@@ -245,23 +220,10 @@ class TestBookingPost:
         # Known API bug: an invalid date should be rejected with 400, but 29 February in a non-leap year rolls over to 1 March
         ("2026-02-29", 200, "2026-03-01"),
         ])
-    def test_equivalence_partitioning_checkvariables(self, base_url, date_key, date_value, expected_status_code, expected_result, token):
+    def test_equivalence_partitioning_checkvariables(self, base_url, date_key, date_value, expected_status_code, expected_result, token, original_payload):
 
-        payload = {
-            "firstname": "Andres",
-            "lastname": "Reyes",
-            "totalprice": 10,
-            "depositpaid": True,
-            "bookingdates": {
-                "checkin": "2099-12-01",
-                "checkout": "2999-01-31"
-            },
-            "additionalneeds": "Breakfast"
-        }
-
-        post_payload = payload.copy()
-        post_payload["bookingdates"][date_key] = date_value
-        response = requests.post(f"{base_url}/booking", json= post_payload)
+        original_payload["bookingdates"][date_key] = date_value
+        response = requests.post(f"{base_url}/booking", json=original_payload)
         assert response.status_code == expected_status_code, f"Expected {expected_status_code} with {date_key}={date_value!r}, but got {response.status_code}, {response.text} with these headers {response.headers}"
         body = response.json()
         delete_booking(base_url, token, body["bookingid"])
@@ -273,22 +235,12 @@ class TestBookingPost:
         ("2026-11-11", 200, "2026-11-11"),
         ("2028-02-29", 200, "2028-02-29"),
         ])
-    def test_equivalence_partitioning_valid_dates(self, base_url, token, date_key, date_value, expected_status_code, expected_result):
+    def test_equivalence_partitioning_valid_dates(self, base_url, token, date_key, date_value, expected_status_code, expected_result, original_payload):
 
-        payload = {
-            "firstname": "Andres",
-            "lastname": "Reyes",
-            "totalprice": 10,
-            "depositpaid": True,
-            "bookingdates": {
-                "checkin": "2026-01-01",
-                "checkout": "2029-01-01"
-            },
-            "additionalneeds": "Breakfast"
-        }
-
-        payload["bookingdates"][date_key] = date_value
-        response = requests.post(f"{base_url}/booking", json=payload)
+        # Wide range so every date_value keeps checkin before checkout; the fixture's range is too narrow
+        original_payload["bookingdates"] = {"checkin": "2026-01-01", "checkout": "2029-01-01"}
+        original_payload["bookingdates"][date_key] = date_value
+        response = requests.post(f"{base_url}/booking", json=original_payload)
         assert response.status_code == expected_status_code, f"Expected {expected_status_code} with {date_key}={date_value!r}, but got {response.status_code}, {response.text} with these headers {response.headers}"
         body = response.json()
         delete_booking(base_url, token, body["bookingid"])

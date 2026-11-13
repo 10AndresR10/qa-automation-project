@@ -168,9 +168,10 @@ day, or
   so run times and occasional responses can vary. Cleanup also adds requests
   to most tests: the latest full run took about 178 seconds with 180 tests, up
   from about 159 seconds with 168 tests on 2026-11-09, about 105 on 2026-11-06
-  and about 87 before cleanup was added. Part of the increase comes from the two POST wrong-data tests. Each of their 61 cases now
-  creates and deletes an unused `existing_booking_id` booking, and the `200`
-  cases also delete their own booking. API speed varies too, so the exact
+  and about 87 before cleanup was added. Part of the increase came from the two POST wrong-data tests: each of their 61
+  cases created and deleted an unused `existing_booking_id` booking. They now
+  use the `original_payload` fixture instead (2026-11-12), so that cost is gone,
+  but no full run has been timed since. API speed varies too, so the exact
   share is not known.
 
 ## 5. Recommendations
@@ -182,12 +183,8 @@ day, or
 3. Handle missing required fields the same way on POST and PUT.
 
 **For the test suite:**
-1. Add a fixture that only returns a valid booking payload. The POST
-   wrong-data tests use `existing_booking_id` just for its payload, so each of
-   their 61 cases creates and deletes a booking it never uses (see section 4).
-   The same payload dict is also repeated in several POST tests.
-2. Run the suite in CI (GitHub Actions) on every push. This is Milestone 6.
-3. Confirm the reset by checking the highest booking ID regularly, to see whether
+1. Run the suite in CI (GitHub Actions) on every push. This is Milestone 6.
+2. Confirm the reset by checking the highest booking ID regularly, to see whether
    it drops at a steady interval.
 
 Done since the last report:
@@ -241,3 +238,9 @@ Done since the last report:
   shows what the API returned. The two POST wrong-data tests also show the
   value that was sent, and the double-delete test says whether the first or
   second DELETE failed (2026-11-12).
+- A new `original_payload` fixture returns a valid booking payload. The POST
+  wrong-data tests use it instead of `existing_booking_id`, so they no longer
+  create a booking they never use, and the other POST tests use it instead of
+  their own copy of the payload. `test_equivalence_partitioning_valid_dates`
+  sets a wider date range so every check-in stays before check-out
+  (2026-11-12).
