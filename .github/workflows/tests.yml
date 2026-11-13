@@ -1,0 +1,42 @@
+# Workflow name, shown in the GitHub "Actions" tab
+name: API Tests
+
+# Events that start the workflow
+on:
+  push:                # every push, on any branch
+  pull_request:        # every pull request
+  workflow_dispatch:   # adds a "Run workflow" button in the Actions tab
+
+jobs:
+  test:
+    runs-on: ubuntu-latest   # a fresh Linux machine for every run
+    timeout-minutes: 15      # stop the job if it hangs (a normal run takes about 3 minutes)
+    steps:
+      # 1. Download the repository onto the machine
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      # 2. Install the same Python version used locally
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip   # reuse downloaded packages between runs
+
+      # 3. Install the pinned packages from requirements.txt
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # 4. Run the tests and build the HTML report
+      - name: Run tests
+        run: pytest --html=report.html --self-contained-html
+
+      # 5. Save the report as a downloadable file on the run's page.
+      #    "if: always()" keeps this step running even when tests fail,
+      #    which is when the report is needed most.
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: report.html
