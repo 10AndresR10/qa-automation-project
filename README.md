@@ -35,6 +35,14 @@ Portfolio project for API test automation in Python, built against the
 See [`tests/manual-test-cases.md`](tests/manual-test-cases.md) for the full
 test case list written before implementation.
 
+## Bugs found
+
+Testing found 25 bugs and unexpected behaviors in the API, such as the string
+`"False"` being stored as `true` and dates silently rolling over or losing
+digits. See [`known-bugs.md`](known-bugs.md) for the full list, and the
+[test summary report](test-summary-report.md) for the most important ones by severity.
+Results of past test runs are in [`tests/test-run-log.md`](tests/test-run-log.md).
+
 ## Tech stack
 
 - Python 3 (f-strings avoid nested double quotes, so the tests don't need 3.12+)

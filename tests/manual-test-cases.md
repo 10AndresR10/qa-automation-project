@@ -1,3 +1,11 @@
+# Manual Test Cases
+
+Test cases written before each test was automated, with the expected and actual results.
+Bug numbers ("see bug #4") refer to [`known-bugs.md`](../known-bugs.md). Full suite runs and
+test data cleanup notes are in [`test-run-log.md`](test-run-log.md).
+
+---
+
 # Test Cases — GET Method
 
 **Test 1: GET request (happy path)**
@@ -242,37 +250,6 @@ PUT method test cases are complete — all planned cases (happy path, wrong data
 
 ---
 
-## Summary of bugs / API behavior discovered
-
-1. **Invalid input triggers 500s, not 400s — for mistyped fields.** A malformed field type (wrong data type) results in a raw `500 Internal Server Error` rather than a client-facing `400 Bad Request`, on both POST and PUT. A *missing* required field behaves inconsistently across methods — see bug #9.
-2. **Non-standard/invalid IDs on GET return 404, not 400.** Malformed IDs, whitespace IDs, and oversized IDs are all treated the same as "not found" — there is no separate bad-request path for unparseable IDs.
-3. **`additionalneeds` is optional**, not required — omitting it returns 200, unlike every other field.
-4. **Empty strings and malformed data are silently accepted (200)** instead of rejected, and in the case of `totalprice` sent as an empty string or a boolean, the value is **corrupted to `None`** rather than validated or rejected. This is a data-integrity bug, not just a missing-validation issue. Confirmed via both the empty-string test (`totalprice: ""`, see POST Test 4, which also confirms `depositpaid: ""` → `false` and empty dates → `"0NaN-aN-aN"` on POST) and the wrong-data-type test (`totalprice: True`/`False`, see POST Test 2) — `totalprice` is corrupted to `None` for either boolean value, unlike `firstname`/`lastname`'s `True`-vs-`False` split (bug #14).
-5. **No length limit on string fields.** Fields up to 360 characters (`firstname`, `lastname`, `additionalneeds`) are accepted and returned as-is with a 200 — no server-side length validation. Since 2026-11-10, `test_extremely_long_string` tests each field on its own at 500–900 characters, with the same result.
-6. **Invalid calendar dates are silently coerced, not rejected.** An out-of-range date like `checkin: "2099-13-01"` (month 13) or `checkout: "1999-01-32"` (day 32) returns 200, and both values come back corrupted to `"0NaN-aN-aN"` rather than the request being rejected — consistent with bug #4.
-7. ~~**Still untested:** the valid-range half of Test 6 (checkout genuinely after checkin) has not been automated yet.~~ **Resolved:** the valid-range half of Test 6 is now automated in `test_equivalence_partitioning_valid_dates` (see Test 6b) — the API correctly returns the dates as sent for a well-formed, chronologically-ordered pair.
-8. **PUT against a non-existent ID returns 405, not 404.** Unlike GET, which treats any unresolvable ID as "not found" (see bug #2), PUT against a well-formed but non-existent ID returns `405 Method Not Allowed` — inconsistent handling of the same underlying condition (no matching record) across methods.
-9. **Missing required field is handled differently by POST vs. PUT.** POST returns `500 Internal Server Error` when a required field is omitted (bug #1), but PUT returns `400 Bad Request` for the identical condition — the two methods validate the same requirement at different points in the request lifecycle.
-10. **No length limit on PUT string fields either**, matching bug #5 on POST — long strings (1,100 chars tested) in any field, including a numeric/boolean field replaced with a string, return 200 with no length or type validation, and don't trigger the 500 seen when every field is mistyped at once (see PUT Test 2). The string fields are stored as sent, but a long string in `totalprice` is corrupted to `null` and a long string in `depositpaid` is coerced to `true`. A long string in the nested `bookingdates.checkin`/`checkout` fields is also accepted with 200, but corrupted to `"0NaN-aN-aN"` rather than stored as sent — consistent with bug #6 (see PUT Test 5).
-11. **DELETE against a non-existent ID also returns 405, not 404**, matching PUT's behavior (bug #8) rather than GET's (bug #2) — the same "record not found" condition is handled inconsistently depending on the HTTP method used, now confirmed across three methods (GET: 404, PUT: 405, DELETE: 405).
-12. **DELETE doesn't distinguish a malformed ID from a not-found one.** A malformed (alphanumeric) ID on DELETE returns the same `405 Method Not Allowed` as a well-formed but non-existent ID (bug #11), unlike GET, which returns `404 Not Found` for both malformed and non-existent IDs alike (bug #2) — DELETE and GET are each internally consistent, but disagree with each other on the status code for the same class of condition.
-13. **PUT accepts empty strings for `firstname`/`lastname`/`additionalneeds`, but corrupts `totalprice` and `depositpaid`.** Sending `""` for `totalprice` returns 200 but the stored value comes back as `null` (matching bug #4's POST-side corruption), and sending `""` for `depositpaid` returns 200 but the stored value comes back coerced to boolean `false` — neither is rejected nor stored as sent. Both are now confirmed by automated assertions in `test_empty_string_field` (no longer `xfail`). Replacing the whole `bookingdates` object with `""` is correctly rejected with 400, but an empty string for just a nested `bookingdates.checkin`/`checkout` field is accepted with 200 and corrupted to `"0NaN-aN-aN"`, consistent with bug #6 (see PUT Test 7, confirmed by `test_empty_string_nested_bookingdates_field`).
-14. **POST treats the wrong-type boolean `False` differently from `True` on string fields.** Sending `firstname`/`lastname: True` returns 500 (consistent with bug #1), but sending `False` for the same field is silently accepted with 200 and stored as the literal `false` — the falsy value slips past whatever check produces the 500 for other wrong types. Confirmed by `test_wrong_data_type`, which asserts both halves of the split, including the stored `false` (see POST Test 2). Re-confirmed on 2026-09-30 by sending the requests directly. Possible cause (not confirmed): the server may only validate a field when its value is truthy. Other falsy values for `firstname`, such as `""` or `null`, could test this further. PUT has the same split: `True` → 500, `False` → 200 stored as `false` (confirmed by `test_put_wrong_data`, see PUT Test 2). On both POST and PUT the pattern also holds for numbers: `0` (falsy) is stored, `3.14` (truthy) returns 500 (see bug #18). This supports the truthy-check theory.
-15. **`additionalneeds` has no type validation.** On POST, a number or boolean `additionalneeds` is accepted with 200 and stored with its wrong type (`0`, `12345`, `-12345`, `true`, `false`, `3.14`) — no rejection and no conversion to a string, unlike the other string fields `firstname`/`lastname`, which return 500 for the truthy inputs (bug #1, bug #14). Confirmed by `test_wrong_data_type` (see POST Test 2). PUT behaves the same: `0`, `-12345`, `True`, `False` and `8.9999` are all stored as sent (confirmed by `test_put_wrong_data`, see PUT Test 2).
-16. **Numeric strings in `bookingdates` are parsed as years and silently truncated.** On POST, a numeric string such as `"193735"` for `checkin`/`checkout` is accepted with 200 and stored as `"3735-01-01"` — the API treats it as year 193735 and keeps only the last four digits. Values above `275760` (the JavaScript `Date` year limit) fall back to `"0NaN-aN-aN"` (bug #6). The truncated result looks like a valid date, which makes this worse than the `NaN` case: the corruption is hard to spot. Found when `test_wrong_data_type` failed intermittently (see POST Test 2). Re-confirmed on 2026-09-28 by sending the requests directly: still present. Covered again since 2026-10-28 by `test_wrong_data_type_nested_dict`, which confirms the limit exactly: `"275759"` → `"5759-01-01"`, `"275760"` → `"5760-01-01"`, `"275761"` → `"0NaN-aN-aN"`, for both `checkin` and `checkout` (see POST Test 2b). PUT has the same bug, with the same results: confirmed by `test_put_wrong_data_nested_dict` (see PUT Test 2b).
-17. **PUT keeps an omitted optional field's old value.** Sending a PUT without `additionalneeds` returns 200, and the booking keeps its previous `additionalneeds` (e.g. `"Breakfast"`) instead of clearing it. PUT should replace the whole resource, so here it behaves more like a partial update (PATCH). Found by a direct request on 2026-10-17 (see PUT Test 4). Asserted by `test_missing_required_field` since 2026-11-02 on the PUT response, and since 2026-11-04 with a follow-up GET.
-18. **`firstname`/`lastname` accept and store the number `0`.** On both POST and PUT, `0` returns 200 and is stored as the number `0` — no rejection and no conversion to a string. The request should be rejected with 400. Other numbers don't behave this way: `3.14` returns 500 on both methods. Only the falsy `0` is stored, which fits the truthy-check theory in bug #14. Confirmed by `test_wrong_data_type` (see POST Test 2) and `test_put_wrong_data` (see PUT Test 2), and re-confirmed by sending the requests directly (PUT on 2026-10-24, POST on 2026-11-03). **Corrected on 2026-11-03:** this was first reported as a POST-vs-PUT split, because POST had only been tested with non-zero numbers (`12345`, `3.14`) and PUT only with `0`. Testing `0` on POST showed that the two methods behave the same.
-19. **`depositpaid: "False"` is stored as `true`.** On PUT, the string `"False"` is accepted with 200 and coerced to `true`, because any non-empty string counts as truthy. The value means the opposite of what the client sent, so a booking can be marked as paid when it isn't. `"True"` and non-zero numbers are coerced the same way, but there the result matches what was meant. Confirmed by `test_put_wrong_data` (see PUT Test 2) and re-confirmed on 2026-10-25 by sending the request directly. POST has the same bug: confirmed by `test_wrong_data_type` (see POST Test 2) and re-confirmed on 2026-10-26 by sending the request directly.
-20. **POST and PUT handle a wrong type for the whole `bookingdates` object differently.** POST returns `500 Internal Server Error` when `bookingdates` is replaced by a boolean, number, string or float (`True`, `False`, `0`, `12345`, `-12345`, `"Andres"`, `3.14`), but PUT correctly rejects the same kinds of values (`0`, `False`, `"One"`) with `400 Bad Request`. The same kind of POST-vs-PUT split as bug #9. Confirmed by `test_wrong_data_type` (see POST Test 2) and `test_put_wrong_data` (see PUT Test 2), and re-confirmed on 2026-10-26 by sending the POST requests directly.
-21. **POST and PUT accept a negative `totalprice`.** Sending `totalprice: -1000` returns 200 and stores `-1000`. The type is correct, but a booking can't have a negative price, so the value should be rejected. Confirmed by `test_wrong_data_type` (see POST Test 2) and re-confirmed on 2026-10-26 by sending the request directly. PUT behaves the same: `-1000` is accepted and stored as sent, confirmed by `test_put_wrong_data` (see PUT Test 2) on 2026-11-02.
-22. **A number in `bookingdates.checkin`/`checkout` is read as milliseconds since 1970-01-01.** On POST, sending a number instead of a date string for `checkin` or `checkout` is accepted with 200, and the API treats it as a time in milliseconds since 1970-01-01, not as a year. `275760` (about 4.6 minutes) is stored as `"1970-01-01"`, the same as `275759` and `275761`. The wrong type should be rejected, and the stored date has nothing to do with the value sent. The numeric string `"275760"` is read as a year instead (bug #16), so the same digits give different dates depending on the type. The float `3.14` and the booleans `True`/`False` (converted to `1`/`0`) are also stored as `"1970-01-01"`. Confirmed by `test_wrong_data_type_nested_dict` (see POST Test 2b). PUT has the same bug: `275759`, `275760` and `275761` are all stored as `"1970-01-01"`, confirmed by `test_put_wrong_data_nested_dict` (see PUT Test 2b). The float and boolean cases are not yet tested on PUT.
-23. **A negative year in `bookingdates` loses its minus sign.** On POST, sending `"-2026-01-21"` for `checkin` or `checkout` is accepted with 200 and stored as `"2026-01-21"`. Year -2026 is a valid JavaScript `Date` year, so the API should either reject it or store it as sent; instead it silently turns a date more than 4,000 years in the past into a date in 2026. The result looks like a normal date, so the corruption is hard to spot, the same as bug #16. Possible cause (not yet confirmed): the year is formatted by padding it with zeros and keeping the last four characters, which would explain both this bug and bug #16. Confirmed by `test_wrong_data_type_nested_dict` (see POST Test 2b). PUT has the same bug: `"-2026-01-21"` is also stored as `"2026-01-21"` (confirmed by `test_put_wrong_data_nested_dict`, see PUT Test 2b).
-24. **A `null` date crashes the server.** On POST, sending `null` for `checkin` or `checkout` returns `500 Internal Server Error`, while every other wrong value tried in the nested date fields is accepted with 200 (see POST Test 2b). The same kind of problem as bug #1: the request should be rejected with 400. Confirmed by `test_wrong_data_type_nested_dict`. PUT handles it correctly: a `null` date is rejected with `400 Bad Request` (confirmed by `test_put_wrong_data_nested_dict`, see PUT Test 2b).
-25. **A date that isn't in `YYYY-MM-DD` format is accepted and read as month/day.** On PUT, sending the US-style date `"01/02/2026"` for `checkin` or `checkout` is accepted with 200 and stored as `"2026-01-02"` (2 January). The API documents dates as `YYYY-MM-DD`, so a different format should be rejected with 400. Instead, the day/month order is ambiguous (it could mean 1 February) and the API silently picks month/day, so a client sending day/month dates would store the wrong booking dates with no error. Confirmed by `test_put_wrong_data_nested_dict` (see PUT Test 2b). Not yet tested on POST.
-26. **An impossible day in a real month rolls over into the next month.** On POST, sending `"2026-02-29"` (2026 is not a leap year) for `checkin` or `checkout` is accepted with 200 and stored as `"2026-03-01"`; `"2026-02-31"` is stored as `"2026-03-03"`. The request should be rejected with 400. Day 32 or more is not rolled over but stored as `"0NaN-aN-aN"` (bug #6), and a real leap day (`"2028-02-29"`) is stored as sent. The result looks like a normal date, so the corruption is hard to spot, the same as bugs #16 and #23. Found by `test_equivalence_partitioning_checkvariables` (see POST Test 6) on 2026-11-11 and re-confirmed the same day by sending the requests directly. Not yet tested on PUT.
-
----
-
 # Test Cases — DELETE Method
 
 **Test 1: DELETE request (happy path)**
@@ -310,128 +287,3 @@ Actual: **403 Forbidden** ✅ — matches documented behavior. A follow-up GET r
 ---
 
 DELETE method test cases are now complete — all planned cases (happy path, non-existent ID, double delete, malformed ID, invalid token, missing token) are automated in `test_booking_delete.py` and pass.
-
----
-
-# Full Test Suite Run — 2026-09-29
-
-All four test files now take the shared `base_url` fixture from `conftest.py` instead of a per-class `base_url` attribute.
-
-| File | Tests | Result |
-|---|---|---|
-| `test_booking_get.py` | 5 | 5 passed ✅ |
-| `test_booking_post.py` | 7 | 7 passed ✅ |
-| `test_booking_put.py` | 9 | 9 passed ✅ |
-| `test_booking_delete.py` | 6 | 6 passed on re-run; `test_already_deleted_booking_ID` failed once ⚠️ |
-| **Total** | **27** | **26 passed, 1 failed on first run; 27/27 on re-run** |
-
-- Every result matches the Actual values documented above. No API behavior has changed since the last run.
-- `test_wrong_data_type` (POST) is no longer flaky: both date partitions are now asserted (see POST Test 2).
-- `test_already_deleted_booking_ID` (DELETE) is intermittent: 1 failure in 10 runs, on the response body only (see DELETE Test 3).
-
----
-
-# Full Test Suite Run — 2026-10-17
-
-Changes since the last run:
-- POST and PUT `test_missing_required_field` are parametrized, so each omitted field is reported as its own test. That is why the count is higher than before: no test cases were added or removed.
-- The f-strings in the GET, PUT and DELETE tests use single quotes inside (`existing_booking_id['id']`). Nested double quotes in f-strings are a syntax error before Python 3.12.
-
-| File | Tests | Result |
-|---|---|---|
-| `test_booking_get.py` | 5 | 5 passed ✅ |
-| `test_booking_post.py` | 12 | 12 passed ✅ |
-| `test_booking_put.py` | 14 | 14 passed ✅ |
-| `test_booking_delete.py` | 6 | 6 passed ✅ |
-| **Total** | **37** | **37 passed ✅** |
-
-- Every result matches the Actual values documented above.
-- On 2026-10-16, the old (loop) PUT `test_missing_required_field` failed once in a full run and passed on re-run. It made 6 requests in a row to the public API, so this was most likely a slow or unstable response, not a change in behavior.
-
----
-
-# Full Test Suite Run — 2026-10-18
-
-Changes since the last run:
-- PUT `test_empty_string_field` is parametrized, so each field is reported as its own test (see PUT Test 6). That is why the count is higher than before: no test cases were added or removed.
-
-| File | Tests | Result |
-|---|---|---|
-| `test_booking_get.py` | 5 | 5 passed ✅ |
-| `test_booking_post.py` | 12 | 12 passed ✅ |
-| `test_booking_put.py` | 19 | 19 passed ✅ |
-| `test_booking_delete.py` | 6 | 6 passed ✅ |
-| **Total** | **42** | **42 passed ✅** |
-
-- Every result matches the Actual values documented above.
-
----
-
-# Full Test Suite Run — 2026-10-19
-
-Changes since the last run:
-- PUT `test_extremely_long_string_field` is parametrized, so each field is reported as its own test (see PUT Test 5). That is why the count is higher than before: no test cases were added or removed.
-
-| File | Tests | Result |
-|---|---|---|
-| `test_booking_get.py` | 5 | 5 passed ✅ |
-| `test_booking_post.py` | 12 | 12 passed ✅ |
-| `test_booking_put.py` | 24 | 24 passed ✅ |
-| `test_booking_delete.py` | 6 | 6 passed ✅ |
-| **Total** | **47** | **47 passed ✅** |
-
-- Every result matches the Actual values documented above.
-
----
-
-# Full Test Suite Run — 2026-10-20
-
-No test changes since the last run. This run was used to generate the HTML report (`report.html`) and the [test summary report](../test-summary-report.md).
-
-| File | Tests | Result |
-|---|---|---|
-| `test_booking_get.py` | 5 | 5 passed ✅ |
-| `test_booking_post.py` | 12 | 12 passed ✅ |
-| `test_booking_put.py` | 24 | 24 passed ✅ |
-| `test_booking_delete.py` | 6 | 6 passed ✅ |
-| **Total** | **47** | **47 passed ✅** |
-
-- Every result matches the Actual values documented above.
-
----
-
-# Test Data Cleanup — 2026-11-06
-
-**`existing_booking_id` cleanup.** Since 2026-11-05, the fixture in `conftest.py` deletes its booking after each test. It accepts `201` (deleted) and `405` (the test already deleted the booking). In a checked GET run, the DELETE returned `201` and a follow-up GET returned `404`. Most POST tests create their own bookings with `requests.post`, so this cleanup doesn't cover them yet.
-
-**Intermittent `403` and the API reset.** On 2026-11-05, the cleanup DELETE for booking `5326` got `403` right after a PUT with the same token returned `200`. About 23 seconds later, a GET for that booking returned `404`, the same token still got `403`, and the highest booking ID had dropped from `5326` to `282`. This suggests the API reset its data during the test. The reset itself was not observed, so this is strong evidence from one failure, not proof. See section 4 of the [test summary report](../test-summary-report.md).
-
-**How cleanup handles a `403`.** Since 2026-11-06, if the cleanup DELETE gets `403`, the fixture sends a GET:
-- `404` → the booking is already gone, so cleanup passes.
-- Anything else → cleanup fails with an `ERROR`, because a valid token was rejected while the booking still exists.
-
-Checked by temporarily sending a fake token in the cleanup DELETE:
-- `test_get_method` passed, then reported an `ERROR` at teardown: the DELETE got `403` and the GET got `200`.
-- `test_delete_method` passed with no `ERROR`, because the test had already deleted its booking.
-
-The fake token has been removed. A real reset has not gone through this code yet.
-
-**Full suite run — 2026-11-06:** 168 tests, 168 passed, in about 105 seconds. Before this, `test_delete_method` failed once in a run of the GET and DELETE tests. The failure output was not kept, so the cause is unknown. It then passed 6 times in a row (see section 4 of the [test summary report](../test-summary-report.md)).
-
-# Test Data Cleanup — 2026-11-09
-
-**POST test cleanup.** `delete_booking` now lives in `tests/helpers.py`, so tests can call it as well as the `existing_booking_id` fixture. POST Test 2 (2026-11-08), Test 2b (2026-11-09) and Test 3 (2026-11-09, the `additionalneeds` case) now delete the bookings they create. These POST tests still leave their bookings on the API:
-- `test_empty_string_field`
-- `test_extremely_long_string`
-- `test_equivalence_partitioning_checkvariables`
-- `test_equivalence_partitioning_valid_dates`
-
-**Full suite run — 2026-11-09:** 168 tests, 168 passed, in about 159 seconds (up from about 105 on 2026-11-06; see section 4 of the [test summary report](../test-summary-report.md)).
-
-**Token no longer printed.** The `token` fixture stopped printing the token on 2026-11-09. The assert in the fixture already shows the `/auth` response body when no token comes back, and a printed token would end up in CI logs once the suite runs on GitHub Actions.
-
-# Test Data Cleanup — 2026-11-11
-
-**POST test cleanup is finished.** `test_empty_string_field` (2026-11-09), `test_extremely_long_string` (2026-11-10) and both equivalence-partitioning tests (2026-11-11) now delete the bookings they create, so every POST test cleans up after itself. In every test the delete runs before the stored-value asserts, so a failing assert doesn't leave a booking behind.
-
-**Full suite run — 2026-11-11:** 180 tests, 179 passed, 1 failed, in about 178 seconds. The count went up from 168 because `test_extremely_long_string` (1 → 3 cases) and both equivalence-partitioning tests (1 → 6 cases each) are now parametrized. The failure was `test_empty_string_field[lastname-200-]` (PUT), on its status-code assert. The status code was not recorded, and the test passed in 5 re-runs right after (see section 4 of the [test summary report](../test-summary-report.md)).

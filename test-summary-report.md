@@ -45,7 +45,7 @@ pytest tests/ --html=report.html --self-contained-html
 ## 3. Key findings
 
 Bug numbers refer to the full list in
-[`tests/manual-test-cases.md`](tests/manual-test-cases.md#summary-of-bugs--api-behavior-discovered).
+[`known-bugs.md`](known-bugs.md).
 
 ### High severity: silent data corruption
 
