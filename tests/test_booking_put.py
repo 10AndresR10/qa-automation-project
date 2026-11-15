@@ -20,16 +20,11 @@ class TestBookingPut:
             }
 
         update_response = requests.put(f"{base_url}/booking/{existing_booking_id['id']}", json=payload, headers={"Cookie": f"token={token}"})
-        assert update_response.status_code == 200, update_response.text
-        body = update_response.json()
-
-        assert body["firstname"] == "Andres"
-        assert body["lastname"] == "Reyes"
-        assert body["totalprice"] == 100
-        assert body["depositpaid"] is False
-        assert body["bookingdates"]["checkin"] == "2026-02-01"
-        assert body["bookingdates"]["checkout"] == "2026-02-05"
-        assert body["additionalneeds"] == "Soccer"
+        assert update_response.status_code == 200, f"PUT of booking {existing_booking_id['id']}: expected 200, but got {update_response.status_code}, {update_response.text} with these headers {update_response.headers}"
+        get_response = requests.get(f"{base_url}/booking/{existing_booking_id['id']}")
+        assert get_response.status_code == 200, f"Follow-up GET of booking {existing_booking_id['id']}: expected 200, but got {get_response.status_code}, {get_response.text} with these headers {get_response.headers}"
+        get_body = get_response.json()
+        assert get_body == payload
     
     @pytest.mark.parametrize("key, expected_status_code, wrong_value, expected_value", [
         # Known API bug: a wrong data type should be rejected, but firstname stores the number as sent
