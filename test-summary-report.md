@@ -248,3 +248,8 @@ Done since the last report:
   requirements. The HTML report is kept as a downloadable artifact, even when
   tests fail. The first CI run passed 180 of 180 tests in about 76 seconds
   (2026-11-12). This completes Milestone 6.
+- `test_put_wrong_data_nested_dict` now covers `"2027-02-29"` (29 February in
+  a non-leap year), which confirms bug #26 on PUT: the date is stored as
+  `"2027-03-01"`. The test has 32 cases and all pass. This adds 2 cases, so the
+  suite now has 182 tests; the counts in sections 1 and 2 are from the
+  2026-11-11 run (2026-11-16).

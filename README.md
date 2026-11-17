@@ -22,6 +22,7 @@ Portfolio project for API test automation in Python, built against the
 - **PUT /booking/{id}**
   - Happy path: authenticated update of all fields on an existing booking
   - Wrong data types in the payload (including a negative `totalprice`, which is stored as sent — known API bug)
+  - Wrong values in the nested `bookingdates` dates (same values as POST; known API bugs include `"2027-02-29"` in a non-leap year rolled over to `"2027-03-01"`)
   - Non-existent booking ID (asserts known API bug: returns `405 Method Not Allowed` instead of `404 Not Found`)
   - Missing required field (each field omitted in turn; asserts `400 Bad Request` for required fields, and `200` for the optional `additionalneeds`, including the known API bug that the old value is kept instead of cleared, confirmed with a follow-up GET)
   - Extremely long string field (each field set to a 1,100-character string in turn; asserts the stored value, including known API bugs: `totalprice` corrupted to `null`, `depositpaid` corrupted to `true`, `checkin`/`checkout` corrupted to `"0NaN-aN-aN"`, instead of being rejected or stored as sent)

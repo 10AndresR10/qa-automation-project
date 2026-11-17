@@ -187,6 +187,9 @@ Actual: **200** for every case, and the date is never stored as sent — the sam
   - `"-2026-01-21"` → stored as **`"2026-01-21"`** — 🐛 **Bug:** the minus sign is dropped and year -2026 is stored as 2026 (see bug #23).
   - `[]` → stored as **`"0NaN-aN-aN"`** — 🐛 **Bug:** it can't be read as a date, so it becomes an Invalid Date, the same as `{}` (see bug #6).
   - Both rows have their own `# Known API bug` comment.
+- ✅ **Test status: EXTENDED (2026-11-16).** Added `"2027-02-29"`, 29 February in a non-leap year — 16 values and 32 cases in total, all passing. Result, the same as POST Test 6:
+  - `"2027-02-29"` → stored as **`"2027-03-01"`** — 🐛 **Bug:** the impossible date is not rejected, it rolls over into March (see bug #26). This is the first PUT check for bug #26, which was found on POST.
+  - The row has its own `# Known API bug` comment.
 
 **Test 3: PUT request against a non-existent booking ID**
 (Created a valid booking, deleted it, then sent a full update payload to the now-deleted ID, valid auth token included. Originally tested with a hard-coded 11-digit ID, `99999999999`; a booking that is known to be gone is more reliable than guessing an ID that doesn't exist.)
