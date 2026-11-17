@@ -133,6 +133,8 @@ class TestBookingPost:
         (200, [], "0NaN-aN-aN"),
         # Known API bug: a wrong data type should be rejected, but the float is read as milliseconds since 1970-01-01
         (200, 3.14, "1970-01-01"),
+        # Known API bug: a date not in YYYY-MM-DD format should be rejected with 400 status code, but it is read as month/day and stored as 2 January
+        (200, "01/02/2026", "2026-01-02"),
         ])
     def test_wrong_data_type_nested_dict(self, base_url, date_key, wrong_value, expected_value, expected_status_code, original_payload, token):
 

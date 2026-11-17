@@ -77,6 +77,9 @@ Actual: **200** for every case except `None`, and the date is never stored as se
 - ✅ **Test status: AUTOMATED (2026-10-28).** `test_wrong_data_type_nested_dict` is parametrized over the date field (`checkin`/`checkout`) and the values above. Each row holds the wrong value, the expected status and the expected stored date, and has its own `# Known API bug` comment. Both asserts have failure messages that name the date field.
 - ✅ **Test status: EXTENDED (2026-10-28).** Added the `"Tomorrow"`, `True`, `False`, `None`, `"-2026-01-21"`, `[]` and `3.14` cases — 13 values and 26 cases in total, all passing. The test has a new `500` branch that asserts the `"Internal Server Error"` body, like `test_wrong_data_type`.
 - ✅ **Test status: UPDATED (2026-11-09).** Each `200` case now deletes the booking it created, before the stored-date assert, the same as Test 2. The test now takes its base payload from the `existing_booking_id` fixture instead of its own dict. It copies both the payload and the nested `bookingdates` dict before changing a date. A plain `.copy()` only copies the outer dict, so without the second copy the wrong value would also change the fixture's payload. All 26 cases pass. Using the fixture means each case also creates and deletes one booking it doesn't use.
+- ✅ **Test status: EXTENDED (2026-11-16).** Added the US-style date `"01/02/2026"`, which PUT Test 2b already covered — 14 values and 28 cases in total, all passing. Result, the same as PUT:
+  - `"01/02/2026"` → stored as **`"2026-01-02"`** — 🐛 **Bug:** a date that isn't in `YYYY-MM-DD` format is accepted, and the ambiguous day/month order is silently read as month/day (see bug #25).
+  - The row has its own `# Known API bug` comment.
 - Not covered yet: the number boundary of `Date` (`8.64e15` milliseconds, the latest date it can hold, and `8.64e15 + 1`, which should give an Invalid Date).
 
 **Test 3: POST request with a missing required field**

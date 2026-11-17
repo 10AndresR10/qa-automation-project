@@ -253,3 +253,7 @@ Done since the last report:
   `"2027-03-01"`. The test has 32 cases and all pass. This adds 2 cases, so the
   suite now has 182 tests; the counts in sections 1 and 2 are from the
   2026-11-11 run (2026-11-16).
+- `test_wrong_data_type_nested_dict` (POST) now covers the US-style date
+  `"01/02/2026"`, which confirms bug #25 on POST: the date is stored as
+  `"2026-01-02"`, the same as on PUT. The test has 28 cases and all pass. This
+  adds 2 more cases, so the suite now has 184 tests (2026-11-16).
