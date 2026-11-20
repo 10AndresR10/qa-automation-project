@@ -221,6 +221,8 @@ class TestBookingPost:
         ("2026-12-32", 200, "0NaN-aN-aN"),
         # Known API bug: an invalid date should be rejected with 400, but 29 February in a non-leap year rolls over to 1 March
         ("2026-02-29", 200, "2026-03-01"),
+        # Known API bug: an invalid date should be rejected with 400, but 31 February rolls over to 3 March
+        ("2026-02-31", 200, "2026-03-03"),
         ])
     def test_equivalence_partitioning_checkvariables(self, base_url, date_key, date_value, expected_status_code, expected_result, token, original_payload):
 

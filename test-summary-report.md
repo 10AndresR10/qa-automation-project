@@ -261,3 +261,8 @@ Done since the last report:
   stored as `"2026-03-03"`: the rollover in bug #26 is not limited to
   29 February. The test has 34 cases and all pass. This adds 2 more cases, so
   the suite now has 186 tests (2026-11-18).
+- `test_equivalence_partitioning_checkvariables` (POST) now also covers
+  `"2026-02-31"`, stored as `"2026-03-03"`, the same as on PUT. Before, this
+  POST result was only checked by a direct request. The test has 8 cases and
+  all pass. This adds 2 more cases, so the suite now has 188 tests
+  (2026-11-19).

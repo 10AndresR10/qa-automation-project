@@ -112,6 +112,9 @@ Expected (assumed): valid → 200, invalid → 400
 Actual: **200** — both invalid dates are silently coerced to `"0NaN-aN-aN"` instead of being rejected.
 - ✅ **Test status: REFACTORED AND EXTENDED (2026-11-11).** `test_equivalence_partitioning_checkvariables` is now parametrized like Test 2b: the date field (`checkin`/`checkout`) and the invalid value are separate decorators, so only one date is invalid in each case. The other date keeps a valid base value (`checkin: "2099-12-01"`, `checkout: "2999-01-31"`). The values are `"2099-13-01"` (month 13), `"2026-12-32"` (day 32) and the new `"2026-02-29"` (29 February in a non-leap year) — 6 cases in total, all passing. Each case deletes its booking before the stored-date assert, every row has a `# Known API bug` comment, and both asserts have failure messages that name the date field and the value sent.
 - `"2026-02-29"` → stored as **`"2026-03-01"`** — 🐛 **Bug:** the impossible date is not rejected, it rolls over into March (see bug #26). Re-confirmed on 2026-11-11 by sending the requests directly: `"2026-02-31"` → `"2026-03-03"`, the same for `checkout`, while the real leap day `"2028-02-29"` is stored as sent.
+- ✅ **Test status: EXTENDED (2026-11-19).** Added `"2026-02-31"` (31 February), which until now was only checked by a direct request — 4 values and 8 cases in total, all passing. Result, the same as the direct request and as PUT Test 2b:
+  - `"2026-02-31"` → stored as **`"2026-03-03"`** — 🐛 **Bug:** the impossible date is not rejected, it rolls over into March (see bug #26).
+  - The row has its own `# Known API bug` comment.
 - Note: in the `checkout` cases the invalid value is before the base `checkin` (`2099-12-01`), so those requests are also out of order. This doesn't change the results today.
 
 **Test 6b: POST request — equivalence partitioning, valid-range counterpart**
