@@ -136,6 +136,8 @@ class TestBookingPut:
         ([], 200, "0NaN-aN-aN"),
         # Known API bug: an invalid date should be rejected with 400 status code, but 29 February in non-leap year rolls over to 1 March
         ("2027-02-29", 200, "2027-03-01"),
+        # Known API bug: an invalid date should be rejected with 400, but 31 February rolls over into March and is stored as 3 March
+        ("2026-02-31", 200, "2026-03-03"),
     ])
     def test_put_wrong_data_nested_dict(self, base_url, token, existing_booking_id, date_key, wrong_value, expected_status_code, expected_value):
 

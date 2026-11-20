@@ -257,3 +257,7 @@ Done since the last report:
   `"01/02/2026"`, which confirms bug #25 on POST: the date is stored as
   `"2026-01-02"`, the same as on PUT. The test has 28 cases and all pass. This
   adds 2 more cases, so the suite now has 184 tests (2026-11-16).
+- `test_put_wrong_data_nested_dict` now also covers `"2026-02-31"`, which is
+  stored as `"2026-03-03"`: the rollover in bug #26 is not limited to
+  29 February. The test has 34 cases and all pass. This adds 2 more cases, so
+  the suite now has 186 tests (2026-11-18).
