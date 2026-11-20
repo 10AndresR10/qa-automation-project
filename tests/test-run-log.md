@@ -126,3 +126,9 @@ The fake token has been removed. A real reset has not gone through this code yet
 **POST test cleanup is finished.** `test_empty_string_field` (2026-11-09), `test_extremely_long_string` (2026-11-10) and both equivalence-partitioning tests (2026-11-11) now delete the bookings they create, so every POST test cleans up after itself. In every test the delete runs before the stored-value asserts, so a failing assert doesn't leave a booking behind.
 
 **Full suite run — 2026-11-11:** 180 tests, 179 passed, 1 failed, in about 178 seconds. The count went up from 168 because `test_extremely_long_string` (1 → 3 cases) and both equivalence-partitioning tests (1 → 6 cases each) are now parametrized. The failure was `test_empty_string_field[lastname-200-]` (PUT), on its status-code assert. The status code was not recorded, and the test passed in 5 re-runs right after (see section 4 of the [test summary report](../test-summary-report.md)).
+
+# GitHub Actions Runs — 2026-11-20 (UTC)
+
+**Run `44669259098` (commit `a0a0e71`):** 186 tests, 185 passed, 1 failed, in about 141 seconds. The failure was `test_wrong_data_type_nested_dict[200-275759-1970-01-01-checkout]` (POST), in its cleanup, not in its own asserts: the DELETE for booking `32` got `403 Forbidden`, and the follow-up GET returned `200`, so `delete_booking` failed because the booking still existed. The low booking ID suggests the API had just reset. This is the first real `403` to reach the reset check in `delete_booking`, and it shows a case that check doesn't cover: the booking was most likely created after the reset, while the token was fetched before it (see section 4 of the [test summary report](../test-summary-report.md)).
+
+**Run `44670324242` (commit `c9aa1a6`):** 188 tests, 188 passed, in about 16 seconds, about 10 minutes after the failed run.

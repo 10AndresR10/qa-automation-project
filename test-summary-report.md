@@ -118,7 +118,7 @@ day, or
 - `test_already_deleted_booking_ID` (DELETE) failed once in 10 runs on
   2026-09-29, on the response body only. This is most likely an unstable
   response from the shared public API.
-- **Intermittent `403` with a token from `/auth`.** This has happened three
+- **Intermittent `403` with a token from `/auth`.** This has happened four
   times. It is most likely caused by the API resetting its data during a test,
   not by an authentication bug:
   - `test_delete_method` (DELETE) failed once in a full run on 2026-11-03: it
@@ -130,6 +130,12 @@ day, or
   - `test_empty_string_field[totalprice-200-None]` (PUT) passed on 2026-11-05,
     but its cleanup reported an error: the DELETE for booking `5326` got `403`
     instead of `201` or `405`.
+  - `test_wrong_data_type_nested_dict[200-275759-1970-01-01-checkout]` (POST)
+    failed in the GitHub Actions run `44669259098` on 2026-11-20 (UTC), with
+    1 failed and 185 passed. The test's own asserts passed, but its cleanup
+    failed: the DELETE for booking `32` got `403`, and the GET that followed
+    returned `200`, so the booking still existed. The next CI run, about 10
+    minutes later, passed all 188 tests.
 - **Unexplained failure on 2026-11-06.** `test_delete_method` failed once in a
   run of the GET and DELETE tests, and that run took about 15 seconds instead of
   about 8. The failure output was not kept, so the status code is unknown and this
@@ -151,6 +157,16 @@ day, or
   reset itself was not observed, so this is strong evidence from one failure, not
   proof. The token and response details were not recorded for the first two
   failures.
+- **New evidence from the 2026-11-20 CI failure: a reset may also wipe tokens.**
+  Booking `32` has a much lower ID than the bookings seen the day before (around
+  `1063`), so the API had most likely just reset. The `token` fixture is
+  function-scoped, so the token was fetched at the start of the test, and the
+  booking was created by a POST, which needs no token. If the reset happened
+  after the token was fetched, the booking would be created after the reset
+  and still exist, while the token would no longer be valid. That fits the
+  `403` followed by a `200`. This is the most likely explanation, but it is not
+  confirmed: the reset itself was not observed, and the token was not tried
+  again.
 - **What failures show now.** `test_delete_method`, `test_put_wrong_data` and
   the cleanup in `delete_booking` show the response body and headers if the
   status code is wrong. From 2026-11-04 to 2026-11-09, failing tests that used
@@ -160,7 +176,11 @@ day, or
   `403`, the fixture sends a GET. A `404` means the booking is already gone, so
   cleanup passes. Anything else fails, because a valid token was rejected while
   the booking still exists. Both paths were checked by temporarily using a fake
-  token. A real reset has not gone through this code yet.
+  token. The 2026-11-20 CI failure was the first real `403` to go through this
+  code, and it took the failing path: the booking still existed. The code only
+  covers a reset that removes the booking, not one that wipes the token after
+  the booking was created. A possible fix is to get a fresh token and retry the
+  DELETE once before checking with a GET.
 - **Known limitation.** A reset during a test can make that test fail, and the
   suite can't prevent this on a shared public API. Re-run the test before
   treating a `403` with a valid token as a bug.
