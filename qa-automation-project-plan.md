@@ -84,3 +84,4 @@ api-test-automation/
 - [x] Start coding first test file
 - [x] Generate HTML report and write test summary report (Milestone 5)
 - [x] Add GitHub Actions workflow (Milestone 6)
+- [x] Polish the README, repo description and topics for the portfolio (Milestone 7)
