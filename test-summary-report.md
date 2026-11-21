@@ -118,7 +118,7 @@ day, or
 - `test_already_deleted_booking_ID` (DELETE) failed once in 10 runs on
   2026-09-29, on the response body only. This is most likely an unstable
   response from the shared public API.
-- **Intermittent `403` with a token from `/auth`.** This has happened four
+- **Intermittent `403` with a token from `/auth`.** This has happened five
   times. It is most likely caused by the API resetting its data during a test,
   not by an authentication bug:
   - `test_delete_method` (DELETE) failed once in a full run on 2026-11-03: it
@@ -136,6 +136,12 @@ day, or
     failed: the DELETE for booking `32` got `403`, and the GET that followed
     returned `200`, so the booking still existed. The next CI run, about 10
     minutes later, passed all 188 tests.
+  - `test_extremely_long_string_field[depositpaid-200-True]` (PUT) failed once
+    in a local full run on 2026-11-20, with 1 failed and 187 passed: the PUT
+    itself got `403` instead of `200`. Its cleanup didn't report an error. The
+    test passed in 3 re-runs right after. A booking created a few minutes before
+    the run had ID `3854`, and right after the run the highest booking ID was
+    `243`, so the API reset during or just before the run.
 - **Unexplained failure on 2026-11-06.** `test_delete_method` failed once in a
   run of the GET and DELETE tests, and that run took about 15 seconds instead of
   about 8. The failure output was not kept, so the status code is unknown and this
@@ -178,12 +184,22 @@ day, or
   the booking still exists. Both paths were checked by temporarily using a fake
   token. The 2026-11-20 CI failure was the first real `403` to go through this
   code, and it took the failing path: the booking still existed. The code only
-  covers a reset that removes the booking, not one that wipes the token after
-  the booking was created. A possible fix is to get a fresh token and retry the
-  DELETE once before checking with a GET.
+  covered a reset that removes the booking, not one that wipes the token after
+  the booking was created.
+- **Cleanup retries with a fresh token (2026-11-20).** The `/auth` request moved
+  from the `token` fixture to a `get_token` helper in `tests/helpers.py`. If the
+  cleanup DELETE gets `403`, `delete_booking` now gets a fresh token, sends the
+  DELETE again, and then checks with a GET: a `404` passes, anything else fails.
+  The failure message shows the status of both DELETEs. Both paths were checked
+  by temporarily using a fake token: with a fake token in the first DELETE only,
+  the retry deleted the booking and the test passed; with a fake token in both,
+  cleanup failed with `DELETE got 403, retry with a fresh token got 403` and
+  `GET returned 200`. A real reset has not gone through the retry yet.
 - **Known limitation.** A reset during a test can make that test fail, and the
-  suite can't prevent this on a shared public API. Re-run the test before
-  treating a `403` with a valid token as a bug.
+  suite can't prevent this on a shared public API. The cleanup retry only
+  covers the cleanup DELETE: a test's own PUT or DELETE is not retried, because
+  that could hide a real `403` bug. Re-run the test before treating a `403`
+  with a valid token as a bug.
 - The suite depends on a public API that other people use at the same time,
   so run times and occasional responses can vary. Cleanup also adds requests
   to most tests: the latest full run took about 178 seconds with 180 tests, up
@@ -286,3 +302,6 @@ Done since the last report:
   POST result was only checked by a direct request. The test has 8 cases and
   all pass. This adds 2 more cases, so the suite now has 188 tests
   (2026-11-19).
+- `delete_booking` now retries the cleanup DELETE once with a fresh token
+  from the new `get_token` helper when it gets `403`, which fixes the
+  cleanup failure in CI run `44669259098` (see section 4) (2026-11-20).

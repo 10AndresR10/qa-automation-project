@@ -132,3 +132,13 @@ The fake token has been removed. A real reset has not gone through this code yet
 **Run `44669259098` (commit `a0a0e71`):** 186 tests, 185 passed, 1 failed, in about 141 seconds. The failure was `test_wrong_data_type_nested_dict[200-275759-1970-01-01-checkout]` (POST), in its cleanup, not in its own asserts: the DELETE for booking `32` got `403 Forbidden`, and the follow-up GET returned `200`, so `delete_booking` failed because the booking still existed. The low booking ID suggests the API had just reset. This is the first real `403` to reach the reset check in `delete_booking`, and it shows a case that check doesn't cover: the booking was most likely created after the reset, while the token was fetched before it (see section 4 of the [test summary report](../test-summary-report.md)).
 
 **Run `44670324242` (commit `c9aa1a6`):** 188 tests, 188 passed, in about 16 seconds, about 10 minutes after the failed run.
+
+# Cleanup Retry — 2026-11-20
+
+**Fresh-token retry in `delete_booking`.** If the cleanup DELETE gets `403`, `delete_booking` now gets a fresh token with the new `get_token` helper (the `/auth` request moved there from the `token` fixture), sends the DELETE again, and then checks with a GET. Checked by temporarily using a fake token:
+- Fake token in the first DELETE only: `test_put_method` passed, so the retry deleted the booking.
+- Fake token in both DELETEs: cleanup failed with `DELETE got 403, retry with a fresh token got 403, Forbidden ...` and `GET returned 200`.
+
+The fake tokens have been removed.
+
+**Full suite run — 2026-11-20:** 188 tests, 187 passed, 1 failed, in about 166 seconds. The failure was `test_extremely_long_string_field[depositpaid-200-True]` (PUT): the PUT itself got `403` instead of `200`. Its cleanup didn't report an error. The test passed in 3 re-runs right after. A booking created a few minutes before the run had ID `3854`, and the highest booking ID right after the run was `243`, so the API reset during or just before the run (see section 4 of the [test summary report](../test-summary-report.md)).
