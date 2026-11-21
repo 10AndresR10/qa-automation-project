@@ -82,9 +82,10 @@ tests.
 
 ## Test report
 
-The latest run (2026-11-11): **180 tests, 179 passed, 1 failed**. The failure
-was a PUT test that passed in 5 re-runs right after, most likely the shared
-API being unstable (see the report, section 4). Several tests assert
+The latest CI run (2026-11-21 UTC, run `44867387206`): **188 tests, all
+passed**, in about 72 seconds. Now and then a test fails with `403` when the
+shared public API resets its data during a run; such a test passes on re-run
+(see the report, section 4). Several tests assert
 known API bugs, so a pass means the API still behaves as documented, not that
 it is bug-free.
 

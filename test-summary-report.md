@@ -1,19 +1,19 @@
 # Test Summary Report — restful-booker API
 
-**Date:** 2026-11-11
+**Date:** 2026-11-21
 **Tester:** Andres Reyes
 **System under test:** [restful-booker](https://restful-booker.herokuapp.com/apidoc/index.html) (public QA practice API)
-**Environment:** Python 3.14.7, pytest 9.1.1, requests 2.34.2, pytest-html 4.2.0, Windows 11
+**Environment:** Python 3.14.7, pytest 9.1.1, requests 2.34.2, pytest-html 4.2.0, Windows 11 (local runs); Python 3.14 on Ubuntu in GitHub Actions (CI runs)
 
 ## 1. Summary
 
-The automated suite ran 180 tests against the GET, POST, PUT and DELETE
-`/booking` endpoints. **179 of 180 tests passed** in about 178 seconds in the
-latest run. The one failure, `test_empty_string_field[lastname-200-]` (PUT),
-passed in 5 re-runs right after, and its status code wasn't recorded (see
-section 4). A run of the PUT tests on 2026-11-05 had one cleanup error that was
-most likely caused by the API resetting, and `test_delete_method` failed once on
-2026-11-06 for a reason that wasn't recorded (see section 4). Most tests are
+The automated suite ran 188 tests against the GET, POST, PUT and DELETE
+`/booking` endpoints. **All 188 tests passed** in about 72 seconds in the
+latest GitHub Actions run (`44867387206`, 2026-11-21 UTC). A local full run the
+day before passed 187 of 188: the one failure, a PUT that got `403`, happened
+while the API was resetting its data, and the test passed in 3 re-runs right
+after. Earlier runs had a few more failures of this kind, and the cleanup now
+retries with a fresh token when the API reset wipes the token (see section 4). Most tests are
 parametrized, so each wrong value or field runs as its own case.
 
 A passing test does not mean the API is correct. Many tests assert the
@@ -31,10 +31,10 @@ is that the API **silently corrupts data** instead of rejecting bad input.
 | Endpoint | Tests | Passed | Failed | Areas covered |
 |---|---|---|---|---|
 | GET `/booking/{id}` | 5 | 5 | 0 | Happy path, malformed / non-existent / whitespace / very large ID |
-| POST `/booking` | 84 | 84 | 0 | Happy path, wrong data types (incl. nested `bookingdates` dates), boundary values, missing fields, empty strings, long strings, equivalence partitioning on dates (incl. a non-leap-year and a leap-year 29 February) |
-| PUT `/booking/{id}` | 85 | 84 | 1 | Happy path, wrong data types (incl. nested `bookingdates` dates), non-existent ID, missing fields, long strings, empty strings (incl. nested `bookingdates` dates), missing / invalid token |
+| POST `/booking` | 88 | 88 | 0 | Happy path, wrong data types (incl. nested `bookingdates` dates), boundary values, missing fields, empty strings, long strings, equivalence partitioning on dates (incl. a non-leap-year and a leap-year 29 February) |
+| PUT `/booking/{id}` | 89 | 89 | 0 | Happy path, wrong data types (incl. nested `bookingdates` dates), non-existent ID, missing fields, long strings, empty strings (incl. nested `bookingdates` dates), missing / invalid token |
 | DELETE `/booking/{id}` | 6 | 6 | 0 | Happy path, non-existent / already-deleted / malformed ID, missing / invalid token |
-| **Total** | **180** | **179** | **1** | |
+| **Total** | **188** | **188** | **0** | |
 
 To reproduce the HTML report:
 
@@ -202,13 +202,16 @@ day, or
   with a valid token as a bug.
 - The suite depends on a public API that other people use at the same time,
   so run times and occasional responses can vary. Cleanup also adds requests
-  to most tests: the latest full run took about 178 seconds with 180 tests, up
-  from about 159 seconds with 168 tests on 2026-11-09, about 105 on 2026-11-06
-  and about 87 before cleanup was added. Part of the increase came from the two POST wrong-data tests: each of their 61
-  cases created and deleted an unused `existing_booking_id` booking. They now
-  use the `original_payload` fixture instead (2026-11-12), so that cost is gone,
-  but no full run has been timed since. API speed varies too, so the exact
-  share is not known.
+  to most tests. Local full runs took about 178 seconds with 180 tests on
+  2026-11-11, up from about 159 seconds with 168 tests on 2026-11-09, about
+  105 on 2026-11-06 and about 87 before cleanup was added. Part of the
+  increase came from the two POST wrong-data tests: each of their 61 cases
+  created and deleted an unused `existing_booking_id` booking. They now use the
+  `original_payload` fixture instead (2026-11-12). The latest local full run,
+  on 2026-11-20, took about 166 seconds with 188 tests. CI runs are usually
+  faster: the latest one took about 72 seconds with the same 188 tests, and CI
+  runs have ranged from about 16 to 141 seconds. API speed varies a lot, so
+  run times can't be compared exactly.
 
 ## 5. Recommendations
 

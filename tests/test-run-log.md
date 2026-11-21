@@ -142,3 +142,5 @@ The fake token has been removed. A real reset has not gone through this code yet
 The fake tokens have been removed.
 
 **Full suite run — 2026-11-20:** 188 tests, 187 passed, 1 failed, in about 166 seconds. The failure was `test_extremely_long_string_field[depositpaid-200-True]` (PUT): the PUT itself got `403` instead of `200`. Its cleanup didn't report an error. The test passed in 3 re-runs right after. A booking created a few minutes before the run had ID `3854`, and the highest booking ID right after the run was `243`, so the API reset during or just before the run (see section 4 of the [test summary report](../test-summary-report.md)).
+
+**GitHub Actions run `44867387206` — 2026-11-21 (UTC), commit `446d32e`:** 188 tests, 188 passed, in about 72 seconds. This is the first CI run with the fresh-token cleanup retry, and the source of the counts in the README and the test summary report. Per file: GET 5, POST 88, PUT 89, DELETE 6.
